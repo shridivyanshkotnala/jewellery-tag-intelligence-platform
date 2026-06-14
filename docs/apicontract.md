@@ -13,8 +13,8 @@ Not Required (MVP)
 Supported Jewellery Types
 
 * DIAMOND (Enabled)
-* GOLD (Future)
-* SILVER (Future)
+* GOLD 
+* SILVER 
 
 ---
 
@@ -72,6 +72,7 @@ Response
 "scanType": "SINGLE_SIDE",
 "createdAt": "timestamp"
 }
+
 }
 
 ---
@@ -166,18 +167,18 @@ Response
 "structuredData": {
 
   "grossWeight": {
-    "value": "3.280",
+    "value": "3.280", #only for gold & silver
     "confidence": 98
   },
 
   "netWeight": {
-    "value": "3.232",
+    "value": "3.232", #only for gold & silver
     "confidence": 96
   },
 
   "purity": {
     "value": "14K",
-    "confidence": 92
+    "confidence": 92 #only for gold & silver
   },
 
   "diamondWeight": {
@@ -189,6 +190,13 @@ Response
     "value": "16",
     "confidence": 91
   },
+  
+    
+    "diamondRate": {
+        "value" : "IJ"
+        "confidence": 90
+    }
+  ,
 
   "diamondQuality": {
     "value": "IJ VSSI",
@@ -196,18 +204,19 @@ Response
   },
 
   "labour": {
-    "value": "71",
+    "value": "71",  # can be for both diamond, gold,
     "confidence": 96
   }
 
 },
 
-"unknownFields": [
+"unknownFields": [  #Undetected abbrevations
 
   {
-    "abbreviation": "CSWt",
-    "suggestedMeaning": "Colored Stone Weight",
-    "confidence": 48
+    
+    "abbreviation" : "GRT"
+    "suggested meaning" : "grossweight"  #Enum value
+    "confidence" : 48
   }
 
 ],
@@ -233,6 +242,7 @@ Default Threshold:
 80%
 
 ---
+##abbrevation clarification system
 
 ## GET /scans/:scanId/clarification
 
@@ -326,9 +336,11 @@ Response
 
 "diamondWeight": "0.24",
 
-"diamondPieces": "16",
+"diamondPiecesgrossWeight": "16",
 
 "diamondQuality": "IJ VSSI",
+
+"diamondRate" : "IJ",
 
 "labour": "71"
 ```
@@ -356,6 +368,9 @@ Request
 "diamondPieces": "16",
 
 "diamondQuality": "IJ VSSI",
+
+"diamondRate" : "IJ",
+
 
 "labour": "71"
 }
