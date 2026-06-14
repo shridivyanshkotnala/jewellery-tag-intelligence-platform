@@ -1,0 +1,29 @@
+# CODEOWNERS file for Jewellery Tag Intelligence Platform
+# This file defines code ownership and automatic PR reviewer assignment
+
+# Default owner for everything in the repo
+* @divyanshkotnala
+
+# Frontend - React Native
+/frontend/ @anamika @divyanshkotnala
+
+# Backend - Node.js
+/backend/ @ishika @divyanshkotnala
+
+# Documentation
+/docs/ @divyanshkotnala
+
+# CI/CD and DevOps
+/.github/ @divyanshkotnala
+/.github/workflows/ @divyanshkotnala
+
+# Configuration files
+*.json @divyanshkotnala
+*.yml @divyanshkotnala
+*.yaml @divyanshkotnala
+.gitignore @divyanshkotnala
+.env.example @divyanshkotnala
+
+# Architecture and core files
+/README.md @divyanshkotnala
+/package.json @divyanshkotnala
