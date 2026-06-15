@@ -312,13 +312,13 @@ Return:
 {
   _id: ObjectId(),
 
-  gstNumber: String,
+  gstNumber: String, unique
 
-  legalName: String,
+  legalName: String, 
 
   tradeName: String,
 
-  businessType: String,
+  businessType: String, 
 
   gstStatus: String,
 
@@ -357,17 +357,17 @@ db.businesses.createIndex(
 {
   _id: ObjectId(),
 
-  businessId: ObjectId(),
+  businessId: ObjectId(), 
 
-  email: String,
+  email: String, unique
 
-  phone: String,
+  phone: String, unique
 
   passwordHash: String,
 
   role: String,
 
-  emailVerified: Boolean,
+  emailVerified: Boolean, 
 
   phoneVerified: Boolean,
 
