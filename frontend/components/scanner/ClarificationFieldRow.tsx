@@ -3,6 +3,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
 import { getApiFieldLabel } from '@/utils/scanMappers';
+import { useScannerStore } from '@/store/scannerStore';
 import type { ClarificationField } from '@/types/scanner';
 
 interface MenuPosition {
@@ -26,6 +27,7 @@ export function ClarificationFieldRow({
   onMappedFieldChange,
   onDescriptionChange,
 }: ClarificationFieldRowProps) {
+  const selectedType = useScannerStore((s) => s.selectedType);
   const rowRef = useRef<View>(null);
   const triggerRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
@@ -71,7 +73,7 @@ export function ClarificationFieldRow({
         <View ref={triggerRef} className="h-[46px] flex-1 flex-row overflow-hidden rounded-input border border-border bg-white">
           <Pressable className="flex-1 justify-center px-3" onPress={toggleDropdown}>
             <Text className="text-sm font-medium text-text-primary">
-              {getApiFieldLabel(mappedField)}
+              {getApiFieldLabel(mappedField, selectedType)}
             </Text>
           </Pressable>
           <Pressable className="w-11 items-center justify-center bg-primary" onPress={toggleDropdown}>
@@ -123,7 +125,7 @@ export function ClarificationFieldRow({
                     isSelected ? 'font-semibold text-white' : 'text-text-primary'
                   }`}
                 >
-                  {getApiFieldLabel(option)}
+                  {getApiFieldLabel(option, selectedType)}
                 </Text>
               </Pressable>
             );

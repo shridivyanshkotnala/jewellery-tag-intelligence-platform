@@ -1,8 +1,10 @@
 import type {
+  AbbreviationOption,
   ExtractionField,
   FormulaItem,
   FormulaRule,
   InvoiceLineItem,
+  JewelleryType,
   MappedField,
   ScanItemData,
   ScanResultData,
@@ -188,16 +190,51 @@ export const ACTIVE_FORMULA_STEPS = [
   { id: '5', label: 'GST Application', progress: 0 },
 ];
 
-export const ABBREVIATION_OPTIONS = [
-  'Gross Wt',
-  'Net Wt',
-  'Pure Wt',
-  'Gold Rate',
-  'Gold Quality',
-  'Gold Pieces',
-  'Labour',
-  'Other',
-] as const;
+export const ABBREVIATION_OPTIONS_BY_TYPE: Record<JewelleryType, readonly AbbreviationOption[]> = {
+  Diamond: [
+    'Gross Wt',
+    'Net Wt',
+    'Pure Wt',
+    'Diamond Rate',
+    'Diamond Quality',
+    'Diamond Pieces',
+    'Labour',
+    'Other',
+  ],
+  Gold: [
+    'Gross Wt',
+    'Net Wt',
+    'Pure Wt',
+    'Gold Rate',
+    'Gold Quality',
+    'Gold Pieces',
+    'Labour',
+    'Other',
+  ],
+  Silver: [
+    'Gross Wt',
+    'Net Wt',
+    'Pure Wt',
+    'Silver Rate',
+    'Silver Quality',
+    'Silver Pieces',
+    'Labour',
+    'Other',
+  ],
+  'Colour Stone': [
+    'Gross Wt',
+    'Net Wt',
+    'Pure Wt',
+    'Colour Stone Rate',
+    'Colour Stone Quality',
+    'Colour Stone Pieces',
+    'Labour',
+    'Other',
+  ],
+};
+
+/** @deprecated Use ABBREVIATION_OPTIONS_BY_TYPE */
+export const ABBREVIATION_OPTIONS = ABBREVIATION_OPTIONS_BY_TYPE.Gold;
 
 export const MOCK_UNDETECTED_ABBREVIATION = 'GRT';
 

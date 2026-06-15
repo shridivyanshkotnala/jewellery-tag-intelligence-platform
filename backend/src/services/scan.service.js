@@ -38,16 +38,32 @@ const analyzeScan = async (scanId) => {
   });
 };
 
+const getAvailableFieldsForJewelleryType = (jewelleryType) => {
+  const common = ['grossWeight', 'netWeight', 'purity', 'labour', 'other'];
+
+  const stoneFieldsByType = {
+    DIAMOND: ['diamondWeight', 'diamondRate', 'diamondQuality', 'diamondPieces'],
+    GOLD: ['goldWeight', 'goldRate', 'goldQuality', 'goldPieces'],
+    SILVER: ['silverWeight', 'silverRate', 'silverQuality', 'silverPieces'],
+    COLOUR_STONE: [
+      'coloredStoneWeight',
+      'coloredStoneRate',
+      'coloredStoneQuality',
+      'coloredStonePieces',
+    ],
+  };
+
+  const stoneFields = stoneFieldsByType[jewelleryType] || stoneFieldsByType.DIAMOND;
+  return [...common, ...stoneFields];
+};
+
 const getClarification = async (scanId) => {
   const scan = await redisService.getScan(scanId);
   if (!scan || !scan.analysisResult) throw new Error('Scan analysis not found');
 
   const fieldsNeedingReview = [];
   
-  const defaultAvailableFields = [
-    "grossWeight", "netWeight", "purity", "diamondWeight", 
-    "diamondRate", "diamondQuality", "diamondPieces", "labour", "other"
-  ];
+  const defaultAvailableFields = getAvailableFieldsForJewelleryType(scan.jewelleryType || 'DIAMOND');
 
   const unknownFields = scan.analysisResult.unknownFields || [];
   const structuredData = scan.analysisResult.structuredData || {};

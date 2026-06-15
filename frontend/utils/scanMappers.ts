@@ -6,6 +6,7 @@ import type {
   ConfirmedMapping,
   StructuredScanData,
 } from '@/types/scanner';
+import { getClarificationFieldLabel } from '@/utils/clarificationFields';
 
 const JEWELLERY_TYPE_TO_API: Record<JewelleryType, ApiJewelleryType> = {
   Diamond: 'DIAMOND',
@@ -23,6 +24,18 @@ const API_FIELD_LABELS: Record<string, string> = {
   diamondPieces: 'Diamond Pieces',
   diamondRate: 'Diamond Rate',
   diamondQuality: 'Diamond Quality',
+  goldWeight: 'Gold Wt',
+  goldRate: 'Gold Rate',
+  goldQuality: 'Gold Quality',
+  goldPieces: 'Gold Pieces',
+  silverWeight: 'Silver Wt',
+  silverRate: 'Silver Rate',
+  silverQuality: 'Silver Quality',
+  silverPieces: 'Silver Pieces',
+  coloredStoneWeight: 'Colour Stone Wt',
+  coloredStoneRate: 'Colour Stone Rate',
+  coloredStoneQuality: 'Colour Stone Quality',
+  coloredStonePieces: 'Colour Stone Pieces',
   labour: 'Labour',
   other: 'Other',
 };
@@ -59,7 +72,10 @@ export function toApiScanType(mode: ScanMode): ApiScanType {
   return mode === 'both' ? 'BOTH_SIDES' : 'SINGLE_SIDE';
 }
 
-export function getApiFieldLabel(field: string): string {
+export function getApiFieldLabel(field: string, jewelleryType?: JewelleryType): string {
+  if (jewelleryType) {
+    return getClarificationFieldLabel(field, jewelleryType);
+  }
   return API_FIELD_LABELS[field] ?? field;
 }
 

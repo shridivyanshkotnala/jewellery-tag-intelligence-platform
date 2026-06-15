@@ -8,7 +8,7 @@ import { isDemoScanMode } from '@/constants/scanMode';
 import { useScannerStore } from '@/store/scannerStore';
 import type { OcrProcessingState } from '@/types/scanner';
 import { ApiError } from '@/utils/apiClient';
-import { DEMO_CLARIFICATION_FIELDS } from '@/utils/mockScanApi';
+import { getDemoClarificationFields } from '@/utils/mockScanApi';
 import { analyzeScan } from '@/utils/scanApi';
 import { structuredDataToScanItem } from '@/utils/scanMappers';
 
@@ -18,6 +18,7 @@ const SCANNER_BG =
 export default function ProcessingScreen() {
   const router = useRouter();
   const scanId = useScannerStore((s) => s.scanId);
+  const selectedType = useScannerStore((s) => s.selectedType);
   const setUnknownFields = useScannerStore((s) => s.setUnknownFields);
   const setClarificationFields = useScannerStore((s) => s.setClarificationFields);
   const setStructuredData = useScannerStore((s) => s.setStructuredData);
@@ -54,9 +55,10 @@ export default function ProcessingScreen() {
       }, 600);
     } catch (error) {
       if (isDemoScanMode()) {
-        setClarificationFields(DEMO_CLARIFICATION_FIELDS);
+        const demoFields = getDemoClarificationFields(selectedType);
+        setClarificationFields(demoFields);
         setUnknownFields(
-          DEMO_CLARIFICATION_FIELDS.map((f) => ({
+          demoFields.map((f) => ({
             abbreviation: f.abbreviation,
             detectedValue: f.detectedValue,
           })),
@@ -69,7 +71,7 @@ export default function ProcessingScreen() {
         error instanceof ApiError ? error.message : 'Analysis failed. Please try again.',
       );
     }
-  }, [scanId, router, setUnknownFields, setClarificationFields, setStructuredData, updateScanData]);
+  }, [scanId, router, selectedType, setUnknownFields, setClarificationFields, setStructuredData, updateScanData]);
 
   useEffect(() => {
     runAnalysis();

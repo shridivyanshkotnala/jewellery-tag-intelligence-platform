@@ -2,8 +2,9 @@ import { useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 
-import { ABBREVIATION_OPTIONS } from '@/constants/scannerData';
+import { ABBREVIATION_OPTIONS_BY_TYPE } from '@/constants/scannerData';
 import type { AbbreviationOption } from '@/types/scanner';
+import { useScannerStore } from '@/store/scannerStore';
 
 interface MenuPosition {
   top: number;
@@ -24,6 +25,8 @@ export function UndetectedAbbreviationModal({
   onOptionChange,
   onContinue,
 }: UndetectedAbbreviationModalProps) {
+  const selectedType = useScannerStore((s) => s.selectedType);
+  const abbreviationOptions = ABBREVIATION_OPTIONS_BY_TYPE[selectedType];
   const modalRef = useRef<View>(null);
   const triggerRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
@@ -103,7 +106,7 @@ export function UndetectedAbbreviationModal({
             elevation: 12,
           }}
         >
-          {ABBREVIATION_OPTIONS.map((option, index) => {
+          {abbreviationOptions.map((option, index) => {
             const isSelected = selectedOption === option;
             return (
               <Pressable

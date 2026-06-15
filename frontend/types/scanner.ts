@@ -87,9 +87,18 @@ export type AbbreviationOption =
   | 'Gross Wt'
   | 'Net Wt'
   | 'Pure Wt'
+  | 'Diamond Rate'
+  | 'Diamond Quality'
+  | 'Diamond Pieces'
   | 'Gold Rate'
   | 'Gold Quality'
   | 'Gold Pieces'
+  | 'Silver Rate'
+  | 'Silver Quality'
+  | 'Silver Pieces'
+  | 'Colour Stone Rate'
+  | 'Colour Stone Quality'
+  | 'Colour Stone Pieces'
   | 'Labour'
   | 'Other';
 

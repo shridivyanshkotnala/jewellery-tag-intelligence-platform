@@ -18,8 +18,9 @@ import { ScreenBackHeader } from '@/components/scanner/ScreenBackHeader';
 import { isDemoScanMode } from '@/constants/scanMode';
 import { useScannerStore } from '@/store/scannerStore';
 import { ApiError } from '@/utils/apiClient';
-import { DEMO_CLARIFICATION_FIELDS } from '@/utils/mockScanApi';
+import { getDemoClarificationFields } from '@/utils/mockScanApi';
 import { getClarification, submitClarification } from '@/utils/scanApi';
+import { applyJewelleryTypeToClarificationFields } from '@/utils/clarificationFields';
 import { buildConfirmedMappings } from '@/utils/scanMappers';
 
 const SCANNER_BG =
@@ -33,6 +34,7 @@ type FieldSelection = {
 export default function UndetectedAbbreviationScreen() {
   const router = useRouter();
   const scanId = useScannerStore((s) => s.scanId);
+  const selectedType = useScannerStore((s) => s.selectedType);
   const clarificationFields = useScannerStore((s) => s.clarificationFields);
   const setClarificationFields = useScannerStore((s) => s.setClarificationFields);
   const [selections, setSelections] = useState<Record<string, FieldSelection>>({});
@@ -48,10 +50,14 @@ export default function UndetectedAbbreviationScreen() {
     setLoading(true);
     try {
       const data = await getClarification(scanId);
-      setClarificationFields(data.fieldsNeedingReview);
+      const fields = applyJewelleryTypeToClarificationFields(
+        data.fieldsNeedingReview,
+        selectedType,
+      );
+      setClarificationFields(fields);
 
       const initialSelections: Record<string, FieldSelection> = {};
-      for (const field of data.fieldsNeedingReview) {
+      for (const field of fields) {
         initialSelections[field.abbreviation] = {
           mappedField: field.suggestedField,
         };
@@ -59,9 +65,10 @@ export default function UndetectedAbbreviationScreen() {
       setSelections(initialSelections);
     } catch (error) {
       if (isDemoScanMode()) {
-        setClarificationFields(DEMO_CLARIFICATION_FIELDS);
+        const fields = getDemoClarificationFields(selectedType);
+        setClarificationFields(fields);
         const fallbackSelections: Record<string, FieldSelection> = {};
-        for (const field of DEMO_CLARIFICATION_FIELDS) {
+        for (const field of fields) {
           fallbackSelections[field.abbreviation] = { mappedField: field.suggestedField };
         }
         setSelections(fallbackSelections);
@@ -77,7 +84,7 @@ export default function UndetectedAbbreviationScreen() {
     } finally {
       setLoading(false);
     }
-  }, [scanId, router, setClarificationFields]);
+  }, [scanId, router, selectedType, setClarificationFields]);
 
   useEffect(() => {
     loadClarification();

@@ -1,5 +1,9 @@
 import { MOCK_REVIEW_RESULTS } from '@/constants/scannerData';
 import { waitForMockDelay } from '@/constants/api';
+import {
+  applyJewelleryTypeToClarificationFields,
+  getAvailableFieldsForJewelleryType,
+} from '@/utils/clarificationFields';
 import type {
   AnalyzeScanResponse,
   ClarificationField,
@@ -32,9 +36,15 @@ export const DEMO_CLARIFICATION_FIELDS: ClarificationField[] = [
     detectedValue: '1.5',
     suggestedField: 'other',
     confidence: 48,
-    availableFields: ['grossWeight', 'netWeight', 'purity', 'diamondWeight', 'other'],
+    availableFields: getAvailableFieldsForJewelleryType('Diamond'),
   },
 ];
+
+export function getDemoClarificationFields(
+  jewelleryType: JewelleryType,
+): ClarificationField[] {
+  return applyJewelleryTypeToClarificationFields(DEMO_CLARIFICATION_FIELDS, jewelleryType);
+}
 
 export const DEMO_STRUCTURED_DATA: StructuredScanData = {
   grossWeight: MOCK_REVIEW_RESULTS.grossWt || '42.500',
@@ -130,10 +140,11 @@ export async function mockAnalyzeScan(scanId: string): Promise<AnalyzeScanRespon
 
 export async function mockGetClarification(scanId: string): Promise<ClarificationResponse> {
   await waitForMockDelay(300);
-  getOrCreateSession(scanId);
+  const session = getOrCreateSession(scanId);
+  const fields = getDemoClarificationFields(session.jewelleryType);
   return {
     scanId,
-    fieldsNeedingReview: DEMO_CLARIFICATION_FIELDS,
+    fieldsNeedingReview: fields,
   };
 }
 
