@@ -79,14 +79,21 @@ export function getApiFieldLabel(field: string, jewelleryType?: JewelleryType): 
   return API_FIELD_LABELS[field] ?? field;
 }
 
+/** API-mapped scan fields cleared before apply so stale demo defaults (e.g. labour) are not kept. */
 export function structuredDataToScanItem(data: StructuredScanData): Partial<ScanItemData> {
-  const result: Partial<ScanItemData> = {};
+  const result = {} as Partial<ScanItemData>;
+
+  for (const scanKey of Object.values(API_TO_SCAN_ITEM)) {
+    result[scanKey] = '' as ScanItemData[typeof scanKey];
+  }
+
   for (const [apiKey, value] of Object.entries(data)) {
     const scanKey = API_TO_SCAN_ITEM[apiKey];
-    if (scanKey && value != null) {
+    if (scanKey && value != null && String(value).trim() !== '') {
       result[scanKey] = String(value) as ScanItemData[typeof scanKey];
     }
   }
+
   return result;
 }
 

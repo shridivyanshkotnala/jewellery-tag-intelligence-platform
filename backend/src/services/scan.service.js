@@ -154,10 +154,49 @@ const getClarification = async (scanId) => {
   };
 };
 
+const applyClarificationMappings = (analysisResult, confirmedMappings) => {
+  if (!analysisResult || !Array.isArray(confirmedMappings)) {
+    return analysisResult;
+  }
+
+  const structuredData = { ...(analysisResult.structuredData || {}) };
+  const unknownFields = analysisResult.unknownFields || [];
+
+  for (const mapping of confirmedMappings) {
+    if (!mapping?.mappedField || mapping.mappedField === 'other') {
+      continue;
+    }
+
+    const unknown = unknownFields.find((uf) => uf.abbreviation === mapping.abbreviation);
+    const detectedValue = (unknown?.detectedValue || '').trim();
+    if (!detectedValue) {
+      continue;
+    }
+
+    structuredData[mapping.mappedField] = {
+      value: detectedValue,
+      confidence: 100,
+    };
+  }
+
+  return {
+    ...analysisResult,
+    structuredData,
+  };
+};
+
 const submitClarification = async (scanId, confirmedMappings) => {
-    await redisService.updateScanStatus(scanId, 'CLARIFICATION_COMPLETED', {
-       clarifications: confirmedMappings
-    });
+  const scan = await redisService.getScan(scanId);
+  if (!scan?.analysisResult) {
+    throw new Error('Scan analysis not found');
+  }
+
+  const updatedAnalysis = applyClarificationMappings(scan.analysisResult, confirmedMappings);
+
+  await redisService.updateScanStatus(scanId, 'CLARIFICATION_COMPLETED', {
+    clarifications: confirmedMappings,
+    analysisResult: updatedAnalysis,
+  });
 };
 
 const getReviewData = async (scanId) => {
@@ -166,8 +205,11 @@ const getReviewData = async (scanId) => {
 
    const structuredData = {};
    const rawStruct = scan.analysisResult.structuredData || {};
-   for(const [k, v] of Object.entries(rawStruct)) {
-       structuredData[k] = v.value;
+   for (const [k, v] of Object.entries(rawStruct)) {
+     const value = v?.value;
+     if (value != null && String(value).trim() !== '') {
+       structuredData[k] = String(value);
+     }
    }
 
    const updated = await redisService.updateScanStatus(scanId, 'READY_FOR_REVIEW', {

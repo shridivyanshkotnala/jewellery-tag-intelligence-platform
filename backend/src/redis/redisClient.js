@@ -1,14 +1,20 @@
 const Redis = require('ioredis');
 const config = require('../config/env');
 
-const redis = new Redis(config.redis.url);
+let redis = null;
 
-redis.on('connect', () => {
-  console.log('Connected to Redis Cloud');
-});
+if (process.env.USE_MEMORY_STORE !== 'true') {
+  redis = new Redis(config.redis.url);
 
-redis.on('error', (err) => {
-  console.error('Redis error:', err);
-});
+  redis.on('connect', () => {
+    console.log('Connected to Redis');
+  });
+
+  redis.on('error', (err) => {
+    console.error('Redis error:', err.message);
+  });
+} else {
+  console.log('[redis] USE_MEMORY_STORE=true — skipping Redis connection');
+}
 
 module.exports = redis;

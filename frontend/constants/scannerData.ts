@@ -23,7 +23,7 @@ export const DEFAULT_SCAN_ITEM: ScanItemData = {
   diamondQuality: 'VVS1/F',
   diamondWeight: '1.20 ct',
   diamondPieces: '4',
-  labour: '₹5,465',
+  labour: '',
   diamondAmount: '11,400',
 };
 

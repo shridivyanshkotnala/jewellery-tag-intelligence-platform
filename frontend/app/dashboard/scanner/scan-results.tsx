@@ -10,6 +10,7 @@ import { PrimaryGreenButton } from '@/components/scanner/PrimaryGreenButton';
 import { ScanScreenWrapper } from '@/components/scanner/ScanScreenWrapper';
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
 import { MOCK_SCAN_RESULT } from '@/constants/scannerData';
+import { isDemoScanMode } from '@/constants/scanMode';
 import { useScannerStore } from '@/store/scannerStore';
 
 export default function ScanResultsScreen() {
@@ -26,7 +27,7 @@ export default function ScanResultsScreen() {
   const diamondQuality = scanData.diamondQuality || result.stoneType.quality;
   const diamondWeight = scanData.diamondWeight || result.stoneType.weight;
   const diamondAmount = scanData.diamondAmount || result.stoneType.amount;
-  const labour = scanData.labour || result.costSummary.labour;
+  const labour = scanData.labour || (isDemoScanMode() ? result.costSummary.labour : '');
 
   return (
     <ScanScreenWrapper

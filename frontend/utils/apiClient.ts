@@ -59,11 +59,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       errorBody = await response.text();
     }
     const message =
-      typeof errorBody === 'object' &&
-      errorBody !== null &&
-      'message' in errorBody &&
-      typeof (errorBody as { message: unknown }).message === 'string'
-        ? (errorBody as { message: string }).message
+      typeof errorBody === 'object' && errorBody !== null
+        ? typeof (errorBody as { message?: unknown }).message === 'string'
+          ? (errorBody as { message: string }).message
+          : typeof (errorBody as { error?: unknown }).error === 'string'
+            ? (errorBody as { error: string }).error
+            : `Request failed (${response.status})`
         : `Request failed (${response.status})`;
     throw new ApiError(message, response.status, errorBody);
   }
