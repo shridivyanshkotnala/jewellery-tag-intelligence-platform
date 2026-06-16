@@ -1,4 +1,3 @@
-import { DUMMY } from '@/constants/dummyData';
 import { z } from 'zod';
 
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -37,10 +36,14 @@ const otpSchema = z
   .min(1, 'OTP is required')
   .regex(OTP_REGEX, 'Enter the 6-digit OTP');
 
+export function normalizeGstNumber(gst: string): string {
+  return gst.trim().toUpperCase().replace(/^GSTN/i, '');
+}
+
 const gstSchema = z
   .string()
   .trim()
-  .transform((value) => value.toUpperCase())
+  .transform((value) => normalizeGstNumber(value))
   .superRefine((value, ctx) => {
     if (!value) {
       ctx.addIssue({
@@ -50,13 +53,11 @@ const gstSchema = z
       return;
     }
 
-    if (value === DUMMY.gstNumber.toUpperCase()) return;
-    const withoutPrefix = value.replace(/^GSTN/, '');
-    if (GST_REGEX.test(withoutPrefix) || GST_REGEX.test(value)) return;
+    if (GST_REGEX.test(value)) return;
 
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Enter a valid GST number',
+      message: 'Enter a valid 15-character GST number',
     });
   });
 

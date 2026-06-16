@@ -19,8 +19,8 @@ import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
 import { DUMMY } from '@/constants/dummyData';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
-import { confirmBusinessGst, verifyBusinessGst } from '@/utils/authApi';
-import { validateGst } from '@/utils/validation';
+import { verifyAndConfirmBusinessGst } from '@/utils/authApi';
+import { normalizeGstNumber, validateGst } from '@/utils/validation';
 
 const ACCENT_TAN = '#D4C19C';
 const CONFIRM_GREEN = '#1E2F28';
@@ -32,56 +32,35 @@ export default function GstVerificationScreen() {
 
   const [gstNumber, setGstNumber] = useState(DUMMY.gstNumber);
   const [businessName, setBusinessName] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
   const [gstError, setGstError] = useState<string | null>(null);
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleVerify = async () => {
+  const handleContinue = async () => {
     const error = validateGst(gstNumber);
     setGstError(error);
     if (error) return;
 
-    setVerifyLoading(true);
+    setLoading(true);
+    setBusinessName('');
     try {
-      const result = await verifyBusinessGst(gstNumber);
-      if (result.success && result.businessName) {
-        setBusinessName(result.businessName);
-        setIsVerified(true);
-        setGstError(null);
-      } else if (result.success) {
-        setBusinessName(DUMMY.businessName);
-        setIsVerified(true);
-        setGstError(null);
-      } else {
-        setGstError(result.error ?? 'Verification failed');
-        setIsVerified(false);
-        setBusinessName('');
+      const result = await verifyAndConfirmBusinessGst(gstNumber);
+      if (!result.success || !result.businessId) {
+        setGstError(result.error ?? 'GST verification failed');
+        return;
       }
-    } finally {
-      setVerifyLoading(false);
-    }
-  };
 
-  const handleConfirm = async () => {
-    if (!isVerified || !businessName) {
-      setGstError('Please verify GST number first');
-      return;
-    }
-
-    setConfirmLoading(true);
-    try {
-      const confirmed = await confirmBusinessGst(gstNumber);
+      const name = result.businessName ?? DUMMY.businessName;
+      setBusinessName(name);
       updateRegistration({
-        businessId: confirmed.businessId,
-        gstNumber: gstNumber.trim().toUpperCase(),
-        businessName,
+        businessId: result.businessId,
+        gstNumber: normalizeGstNumber(gstNumber),
+        businessName: name,
       });
       router.push('/register/contact');
     } catch (error) {
-      setGstError(error instanceof Error ? error.message : 'Failed to confirm GST details.');
+      setGstError(error instanceof Error ? error.message : 'GST verification failed.');
     } finally {
-      setConfirmLoading(false);
+      setLoading(false);
     }
   };
 
@@ -117,7 +96,7 @@ export default function GstVerificationScreen() {
             >
               <Text style={styles.cardTitle}>GST Verification</Text>
               <Text style={styles.cardDescription}>
-                Enter GST Number to verify buisness details.
+                Enter your GST number to continue registration.
               </Text>
 
               <Text style={styles.inputLabel}>GST Number</Text>
@@ -127,34 +106,20 @@ export default function GstVerificationScreen() {
                   value={gstNumber}
                   onChangeText={(text) => {
                     setGstNumber(text.toUpperCase());
-                    setIsVerified(false);
                     setBusinessName('');
                     setGstError(null);
                   }}
-                  placeholder="GSTNXXXXXXXXXXXX"
+                  placeholder="26AABCP1234F1Z5"
                   placeholderTextColor={Colors.textMuted}
                   autoCapitalize="characters"
-                  editable={!verifyLoading}
+                  editable={!loading}
                   style={styles.textInput}
                 />
-
-                <TouchableOpacity
-                  onPress={handleVerify}
-                  disabled={verifyLoading}
-                  activeOpacity={0.9}
-                  style={[styles.verifyBtn, verifyLoading && styles.verifyBtnDisabled]}
-                >
-                  {verifyLoading ? (
-                    <ActivityIndicator color={Colors.white} size="small" />
-                  ) : (
-                    <Text style={styles.verifyBtnText}>Verify</Text>
-                  )}
-                </TouchableOpacity>
               </View>
 
               {gstError ? <Text style={styles.errorText}>{gstError}</Text> : null}
 
-              {isVerified && businessName ? (
+              {businessName ? (
                 <View style={styles.businessNameBox}>
                   <Text style={styles.businessNameText} numberOfLines={2}>
                     {businessName}
@@ -162,20 +127,18 @@ export default function GstVerificationScreen() {
                 </View>
               ) : null}
 
-              {isVerified && businessName ? (
-                <TouchableOpacity
-                  onPress={handleConfirm}
-                  disabled={confirmLoading}
-                  activeOpacity={0.9}
-                  style={[styles.confirmBtn, confirmLoading && styles.confirmBtnDisabled]}
-                >
-                  {confirmLoading ? (
-                    <ActivityIndicator color={Colors.white} />
-                  ) : (
-                    <Text style={styles.confirmBtnText}>Confirm</Text>
-                  )}
-                </TouchableOpacity>
-              ) : null}
+              <TouchableOpacity
+                onPress={handleContinue}
+                disabled={loading}
+                activeOpacity={0.9}
+                style={[styles.continueBtn, loading && styles.continueBtnDisabled]}
+              >
+                {loading ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.continueBtnText}>Continue</Text>
+                )}
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -270,8 +233,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radius.input,
     backgroundColor: Colors.white,
-    paddingLeft: 16,
-    paddingRight: 4,
+    paddingHorizontal: 16,
   },
   inputRowError: {
     borderColor: Colors.dangerText,
@@ -282,24 +244,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textPrimary,
     paddingVertical: 12,
-  },
-  verifyBtn: {
-    height: 40,
-    minWidth: 76,
-    backgroundColor: ACCENT_TAN,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    marginLeft: 8,
-  },
-  verifyBtnDisabled: {
-    opacity: 0.7,
-  },
-  verifyBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.white,
   },
   errorText: {
     fontSize: 13,
@@ -318,7 +262,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary,
   },
-  confirmBtn: {
+  continueBtn: {
     height: Spacing.buttonHeight,
     width: '100%',
     backgroundColor: CONFIRM_GREEN,
@@ -327,10 +271,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 24,
   },
-  confirmBtnDisabled: {
+  continueBtnDisabled: {
     opacity: 0.7,
   },
-  confirmBtnText: {
+  continueBtnText: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,

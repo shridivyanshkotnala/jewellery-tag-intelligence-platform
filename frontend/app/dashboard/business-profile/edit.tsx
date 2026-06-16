@@ -21,7 +21,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { getEditableBusinessProfile } from '@/utils/businessProfile';
 import { verifyBusinessGst } from '@/utils/authApi';
-import { validateEmail, validateGst, validatePhone } from '@/utils/validation';
+import { normalizeGstNumber, validateEmail, validateGst, validatePhone } from '@/utils/validation';
 
 const ACCENT_TAN = '#D4C19C';
 const BUTTON_GREEN = '#1E2F28';
@@ -81,7 +81,7 @@ export default function EditBusinessProfileScreen() {
       updateRegistration({
         phone,
         email: email.trim(),
-        gstNumber: gstNumber.trim().toUpperCase(),
+        gstNumber: normalizeGstNumber(gstNumber),
         businessName,
       });
       router.back();

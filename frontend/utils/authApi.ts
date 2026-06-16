@@ -1,6 +1,7 @@
 import { apiRequest, ApiError } from '@/utils/apiClient';
 import { unwrapApiData } from '@/utils/apiResponse';
 import type { BusinessLoginResponse } from '@/types/auth';
+import { normalizeGstNumber } from '@/utils/validation';
 
 type ApiEnvelope<T extends Record<string, unknown>> = T & {
   success?: boolean;
@@ -55,7 +56,7 @@ export async function verifyBusinessGst(gstNumber: string): Promise<{
       '/auth/business/gst/verify',
       {
         method: 'POST',
-        body: { gstNumber: gstNumber.trim().toUpperCase() },
+        body: { gstNumber: normalizeGstNumber(gstNumber) },
       },
     );
     const unwrapped = unwrapEnvelope(response);
@@ -80,6 +81,32 @@ export async function verifyBusinessGst(gstNumber: string): Promise<{
   }
 }
 
+export async function verifyAndConfirmBusinessGst(gstNumber: string): Promise<{
+  success: boolean;
+  businessId?: string;
+  businessName?: string;
+  error?: string;
+}> {
+  const verifyResult = await verifyBusinessGst(gstNumber);
+  if (!verifyResult.success) {
+    return verifyResult;
+  }
+
+  try {
+    const confirmed = await confirmBusinessGst(gstNumber);
+    return {
+      success: true,
+      businessId: confirmed.businessId,
+      businessName: verifyResult.businessName,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to confirm GST details.',
+    };
+  }
+}
+
 export async function confirmBusinessGst(gstNumber: string): Promise<{
   businessId: string;
 }> {
@@ -87,7 +114,7 @@ export async function confirmBusinessGst(gstNumber: string): Promise<{
     '/auth/business/gst/confirm',
     {
       method: 'POST',
-      body: { gstNumber: gstNumber.trim().toUpperCase() },
+      body: { gstNumber: normalizeGstNumber(gstNumber) },
     },
   );
 

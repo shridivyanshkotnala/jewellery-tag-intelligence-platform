@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const errorHandler = require('./middleware/errorHandler');
 
 const scanRoutes = require('./routes/scan.routes');
+const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(morgan('dev'));
 
 
 app.use('/api/v1/scans', scanRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 
 

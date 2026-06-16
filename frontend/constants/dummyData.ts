@@ -1,6 +1,6 @@
 /** Pre-filled demo values for testing registration and login flows */
 export const DUMMY = {
-  gstNumber: 'GSTN26159121458793',
+  gstNumber: '26AABCP1234F1Z5',
   businessName: 'Pratham International',
   phone: '9999999999',
   email: 'Loisbecket@gmail.com',
