@@ -4,7 +4,7 @@ const redis = require('../redis/redisClient');
 const TTL = 24 * 60 * 60;
 
 const setScan = async (scanId, data) => {
-  await redis.set(`scan:${scanId}`, JSON.stringify(data), "EX", TTL);
+  await redis.setex(`scan:${scanId}`, TTL, JSON.stringify(data));
 };
 
 const getScan = async (scanId) => {
