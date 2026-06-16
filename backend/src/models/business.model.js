@@ -54,8 +54,7 @@ const businessSchema = new mongoose.Schema({
     default: false
   }
 }, {
-  timestamps: true,
-  collection: 'businesses'
+  timestamps: true
 });
 
 module.exports = mongoose.model('Business', businessSchema);
