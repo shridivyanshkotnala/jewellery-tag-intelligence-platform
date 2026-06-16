@@ -13,21 +13,31 @@ import { MOCK_SCAN_RESULT } from '@/constants/scannerData';
 import { isDemoScanMode } from '@/constants/scanMode';
 import { useScannerStore } from '@/store/scannerStore';
 
+function formatCurrency(value: string | number | undefined, fallback = '0'): string {
+  const numeric = Number(String(value ?? fallback).replace(/[^\d.]/g, ''));
+  if (Number.isNaN(numeric)) return '₹0';
+  return `₹${numeric.toLocaleString('en-IN')}`;
+}
+
 export default function ScanResultsScreen() {
   const router = useRouter();
   const scanData = useScannerStore((s) => s.scanData);
   const selectedType = useScannerStore((s) => s.selectedType);
-  const result = MOCK_SCAN_RESULT;
+  const demoResult = isDemoScanMode() ? MOCK_SCAN_RESULT : null;
 
-  const grossWt = scanData.grossWt || result.rawMaterial.grossWt;
-  const netWt = scanData.netWt || result.rawMaterial.netWt;
-  const pureWt = scanData.pureWt || result.rawMaterial.pureWt;
-  const tunch = scanData.tunch || result.rawMaterial.tunch;
-  const diamondRate = scanData.diamondRate || result.stoneType.rate;
-  const diamondQuality = scanData.diamondQuality || result.stoneType.quality;
-  const diamondWeight = scanData.diamondWeight || result.stoneType.weight;
-  const diamondAmount = scanData.diamondAmount || result.stoneType.amount;
-  const labour = scanData.labour || (isDemoScanMode() ? result.costSummary.labour : '');
+  const grossWt = scanData.grossWt || demoResult?.rawMaterial.grossWt || '—';
+  const netWt = scanData.netWt || demoResult?.rawMaterial.netWt || '—';
+  const pureWt = scanData.pureWt || demoResult?.rawMaterial.pureWt || '—';
+  const tunch = scanData.tunch || demoResult?.rawMaterial.tunch || '—';
+  const diamondRate = scanData.diamondRate || demoResult?.stoneType.rate || '—';
+  const diamondQuality = scanData.diamondQuality || demoResult?.stoneType.quality || '—';
+  const diamondWeight = scanData.diamondWeight || demoResult?.stoneType.weight || '—';
+  const diamondAmount = scanData.diamondAmount || demoResult?.stoneType.amount || '—';
+  const labour = scanData.labour || demoResult?.costSummary.labour || '—';
+  const netPrice = demoResult?.netPrice;
+  const wastage = demoResult?.costSummary.wastage || '—';
+  const otherCharges = demoResult?.costSummary.otherCharges || '—';
+  const total = demoResult?.costSummary.total || '—';
 
   return (
     <ScanScreenWrapper
@@ -52,13 +62,13 @@ export default function ScanResultsScreen() {
 
       <PriceCard
         label="Net Calculated Price"
-        amount={`₹${result.netPrice.toLocaleString('en-IN')}`}
-        subtitle={result.gstNote}
+        amount={formatCurrency(netPrice)}
+        subtitle={demoResult?.gstNote ?? 'GST included where applicable'}
       />
 
       <DataGridSection
         title="Raw Material"
-        badge={selectedType || result.rawMaterial.type}
+        badge={selectedType || demoResult?.rawMaterial.type || 'Item'}
         items={[
           { label: 'Gross Wt.', value: grossWt },
           { label: 'Net Wt.', value: netWt },
@@ -79,10 +89,10 @@ export default function ScanResultsScreen() {
       />
 
       <CostSummaryCard
-        wastage={result.costSummary.wastage}
+        wastage={wastage}
         labour={labour}
-        otherCharges={result.costSummary.otherCharges}
-        total={result.costSummary.total}
+        otherCharges={otherCharges}
+        total={total}
       />
     </ScanScreenWrapper>
   );

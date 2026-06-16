@@ -16,7 +16,6 @@ import { ChevronDown, ChevronLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
-import { DUMMY } from '@/constants/dummyData';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { submitBusinessContactDetails } from '@/utils/authApi';
@@ -30,8 +29,8 @@ export default function ContactDetailsScreen() {
   const registration = useAuthStore((s) => s.registration);
   const updateRegistration = useAuthStore((s) => s.updateRegistration);
 
-  const [phone, setPhone] = useState(DUMMY.phone);
-  const [email, setEmail] = useState(DUMMY.email);
+  const [phone, setPhone] = useState(registration.phone || '');
+  const [email, setEmail] = useState(registration.email || '');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,11 +49,11 @@ export default function ContactDetailsScreen() {
         return;
       }
 
-      updateRegistration({ phone, email: email.trim() });
+      updateRegistration({ phone, email: email.trim().toLowerCase() });
       await submitBusinessContactDetails({
         businessId: registration.businessId,
         phone,
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
       });
       router.push('/register/otp-phone');
     } catch (error) {
@@ -127,7 +126,7 @@ export default function ContactDetailsScreen() {
                     setEmail(text);
                     setEmailError(null);
                   }}
-                  placeholder="Loisbecket@gmail.com"
+                  placeholder="you@business.com"
                   placeholderTextColor={Colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"

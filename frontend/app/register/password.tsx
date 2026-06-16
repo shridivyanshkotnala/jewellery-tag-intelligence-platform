@@ -23,16 +23,16 @@ import { validateConfirmPassword, validatePassword } from '@/utils/validation';
 
 const ACCENT_TAN = '#D4C19C';
 const BUTTON_GREEN = '#1D2E28';
-const DEMO_PASSWORD = 'PASSWORD';
 
 export default function CreatePasswordScreen() {
   const router = useRouter();
   const registration = useAuthStore((s) => s.registration);
   const updateRegistration = useAuthStore((s) => s.updateRegistration);
-  const resetRegistration = useAuthStore((s) => s.resetRegistration);
+  const setSavedCredentials = useAuthStore((s) => s.setSavedCredentials);
 
-  const [password, setPassword] = useState(DEMO_PASSWORD);
-  const [confirmPassword, setConfirmPassword] = useState(DEMO_PASSWORD);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
@@ -61,8 +61,19 @@ export default function CreatePasswordScreen() {
       });
 
       if (result.success) {
-        updateRegistration({ password });
-        resetRegistration();
+        const email = registration.email ?? '';
+        const phone = registration.phone ?? '';
+        updateRegistration({
+          password,
+          email,
+          phone,
+          businessName: registration.businessName,
+          gstNumber: registration.gstNumber,
+          businessId: registration.businessId,
+        });
+        if (email) {
+          setSavedCredentials(email, phone);
+        }
         router.replace('/login');
       } else {
         setFormError(result.error ?? 'Registration failed');
@@ -115,12 +126,24 @@ export default function CreatePasswordScreen() {
                     setPassword(text);
                     setPasswordError(null);
                   }}
-                  placeholder="PASSWORD"
+                  placeholder="Enter password"
                   placeholderTextColor={Colors.textMuted}
-                  autoCapitalize="characters"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
                   autoCorrect={false}
                   style={styles.textInput}
                 />
+                <Pressable
+                  onPress={() => setShowPassword((value) => !value)}
+                  hitSlop={8}
+                  style={styles.eyeBtn}
+                >
+                  {showPassword ? (
+                    <Eye size={20} color={Colors.textMuted} />
+                  ) : (
+                    <EyeOff size={20} color={Colors.textMuted} />
+                  )}
+                </Pressable>
               </View>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 

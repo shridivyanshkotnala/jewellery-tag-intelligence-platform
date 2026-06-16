@@ -16,10 +16,9 @@ import { ChevronLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
-import { DUMMY } from '@/constants/dummyData';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
-import { verifyAndConfirmBusinessGst } from '@/utils/authApi';
+import { confirmBusinessGst, verifyBusinessGst } from '@/utils/authApi';
 import { normalizeGstNumber, validateGst } from '@/utils/validation';
 
 const ACCENT_TAN = '#D4C19C';
@@ -30,35 +29,57 @@ export default function GstVerificationScreen() {
   const router = useRouter();
   const updateRegistration = useAuthStore((s) => s.updateRegistration);
 
-  const [gstNumber, setGstNumber] = useState(DUMMY.gstNumber);
+  const [gstNumber, setGstNumber] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [gstVerified, setGstVerified] = useState(false);
   const [gstError, setGstError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleContinue = async () => {
+  const handleVerifyGst = async () => {
     const error = validateGst(gstNumber);
     setGstError(error);
     if (error) return;
 
     setLoading(true);
     setBusinessName('');
+    setGstVerified(false);
     try {
-      const result = await verifyAndConfirmBusinessGst(gstNumber);
-      if (!result.success || !result.businessId) {
+      const result = await verifyBusinessGst(gstNumber);
+      if (!result.success) {
         setGstError(result.error ?? 'GST verification failed');
         return;
       }
 
-      const name = result.businessName ?? DUMMY.businessName;
-      setBusinessName(name);
+      setBusinessName(result.businessName ?? '');
+      setGstVerified(true);
+    } catch (error) {
+      setGstError(error instanceof Error ? error.message : 'GST verification failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmAndContinue = async () => {
+    if (!gstVerified) {
+      await handleVerifyGst();
+      return;
+    }
+
+    const error = validateGst(gstNumber);
+    setGstError(error);
+    if (error) return;
+
+    setLoading(true);
+    try {
+      const confirmed = await confirmBusinessGst(gstNumber);
       updateRegistration({
-        businessId: result.businessId,
+        businessId: confirmed.businessId,
         gstNumber: normalizeGstNumber(gstNumber),
-        businessName: name,
+        businessName,
       });
       router.push('/register/contact');
     } catch (error) {
-      setGstError(error instanceof Error ? error.message : 'GST verification failed.');
+      setGstError(error instanceof Error ? error.message : 'Failed to confirm GST details.');
     } finally {
       setLoading(false);
     }
@@ -96,7 +117,7 @@ export default function GstVerificationScreen() {
             >
               <Text style={styles.cardTitle}>GST Verification</Text>
               <Text style={styles.cardDescription}>
-                Enter your GST number to continue registration.
+                Enter your GST number to verify with the government registry.
               </Text>
 
               <Text style={styles.inputLabel}>GST Number</Text>
@@ -107,9 +128,10 @@ export default function GstVerificationScreen() {
                   onChangeText={(text) => {
                     setGstNumber(text.toUpperCase());
                     setBusinessName('');
+                    setGstVerified(false);
                     setGstError(null);
                   }}
-                  placeholder="26AABCP1234F1Z5"
+                  placeholder="26ABCDE1234F1Z5"
                   placeholderTextColor={Colors.textMuted}
                   autoCapitalize="characters"
                   editable={!loading}
@@ -121,24 +143,40 @@ export default function GstVerificationScreen() {
 
               {businessName ? (
                 <View style={styles.businessNameBox}>
+                  <Text style={styles.businessNameLabel}>Verified business</Text>
                   <Text style={styles.businessNameText} numberOfLines={2}>
                     {businessName}
                   </Text>
                 </View>
               ) : null}
 
-              <TouchableOpacity
-                onPress={handleContinue}
-                disabled={loading}
-                activeOpacity={0.9}
-                style={[styles.continueBtn, loading && styles.continueBtnDisabled]}
-              >
-                {loading ? (
-                  <ActivityIndicator color={Colors.white} />
-                ) : (
-                  <Text style={styles.continueBtnText}>Continue</Text>
-                )}
-              </TouchableOpacity>
+              {!gstVerified ? (
+                <TouchableOpacity
+                  onPress={handleVerifyGst}
+                  disabled={loading}
+                  activeOpacity={0.9}
+                  style={[styles.continueBtn, loading && styles.continueBtnDisabled]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <Text style={styles.continueBtnText}>Verify GST</Text>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleConfirmAndContinue}
+                  disabled={loading}
+                  activeOpacity={0.9}
+                  style={[styles.continueBtn, loading && styles.continueBtnDisabled]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <Text style={styles.continueBtnText}>Confirm & Continue</Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -256,11 +294,18 @@ const styles = StyleSheet.create({
     backgroundColor: BUSINESS_BOX_BG,
     borderRadius: Radius.input,
     paddingHorizontal: 16,
+    paddingVertical: 12,
     marginTop: 16,
+  },
+  businessNameLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 4,
   },
   businessNameText: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
   continueBtn: {
     height: Spacing.buttonHeight,

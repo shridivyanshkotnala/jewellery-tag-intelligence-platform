@@ -12,63 +12,81 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
-import { loginBusiness } from '@/utils/authApi';
-import { validateEmail, validatePassword } from '@/utils/validation';
+import { useEmployeeStore } from '@/store/employeeStore';
+import { authenticateEmployee } from '@/utils/employeeAuth';
+import { validatePassword, validatePhone } from '@/utils/validation';
 
 const ACCENT_TAN = '#D4C19C';
 const BUTTON_GREEN = '#1E2F28';
+const TAB_BG = '#F2F2F7';
 
-export default function BusinessLoginScreen() {
+type EmployeeLoginMethod = 'employeeId' | 'contact';
+
+export default function EmployeeLoginScreen() {
   const router = useRouter();
+  const employees = useEmployeeStore((s) => s.employees);
   const {
     rememberMe,
     setRememberMe,
-    savedEmail,
     savedPhone,
-    registration,
+    savedEmployeeId,
     setAuthenticated,
     setAuthToken,
-    setSavedCredentials,
+    setSavedEmployeeContact,
     setUserRole,
     setLoggedInEmployee,
   } = useAuthStore();
 
-  const [email, setEmail] = useState(savedEmail || registration.email || '');
+  const [method, setMethod] = useState<EmployeeLoginMethod>('employeeId');
+  const [employeeId, setEmployeeId] = useState(savedEmployeeId || '');
+  const [contact, setContact] = useState(savedPhone || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [employeeIdError, setEmployeeIdError] = useState<string | null>(null);
+  const [contactError, setContactError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     setFormError(null);
-    const eErr = validateEmail(email);
     const pErr = validatePassword(password);
-    setEmailError(eErr);
     setPasswordError(pErr);
-    if (eErr || pErr) return;
+
+    if (method === 'employeeId') {
+      const idErr = employeeId.trim().length < 4 ? 'Enter a valid Employee ID' : null;
+      setEmployeeIdError(idErr);
+      setContactError(null);
+      if (idErr || pErr) return;
+    } else {
+      const phErr = validatePhone(contact);
+      setContactError(phErr);
+      setEmployeeIdError(null);
+      if (phErr || pErr) return;
+    }
 
     setLoading(true);
     try {
-      const result = await loginBusiness(email, password);
-      if (result.success && result.data) {
-        setAuthToken(result.data.accessToken);
-        setUserRole('business');
-        setLoggedInEmployee(null);
+      const identifier = method === 'employeeId' ? employeeId : contact;
+      const result = authenticateEmployee(employees, method, identifier, password);
+
+      if (result.success) {
+        setAuthToken(`employee-${result.employee.id}`);
+        setUserRole('employee');
+        setLoggedInEmployee(result.employee.id);
         setAuthenticated(true);
         if (rememberMe) {
-          setSavedCredentials(email.trim().toLowerCase(), savedPhone);
+          setSavedEmployeeContact(result.employee.employeeId, result.employee.phone);
         }
         router.replace('/dashboard');
       } else {
-        setFormError(result.error ?? 'Login failed. Check your email and password.');
+        setFormError(result.error);
       }
     } finally {
       setLoading(false);
@@ -89,12 +107,12 @@ export default function BusinessLoginScreen() {
               <ChevronLeft size={24} color={Colors.textPrimary} strokeWidth={2} />
             </Pressable>
 
-            <Text style={styles.headerTitle}>Login as a Business</Text>
+            <Text style={styles.headerTitle}>Login as an Employee</Text>
 
             <View style={styles.headerSubtitleRow}>
               <Text style={styles.headerSubtitle}>Don&apos;t have an account? </Text>
-              <Pressable onPress={() => router.replace('/register/gst')}>
-                <Text style={styles.headerLink}>Register</Text>
+              <Pressable>
+                <Text style={styles.headerLink}>Contact Admin</Text>
               </Pressable>
             </View>
           </View>
@@ -105,23 +123,66 @@ export default function BusinessLoginScreen() {
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.cardScroll}
             >
-              <Text style={styles.inputLabel}>Email</Text>
-              <View style={[styles.inputRow, emailError ? styles.inputError : null]}>
-                <TextInput
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    setEmailError(null);
-                  }}
-                  placeholder="you@business.com"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={styles.textInput}
-                />
+              <View style={styles.tabRow}>
+                <Pressable
+                  onPress={() => setMethod('employeeId')}
+                  style={[styles.tab, method === 'employeeId' && styles.tabActive]}
+                >
+                  <Text style={[styles.tabText, method === 'employeeId' && styles.tabTextActive]}>
+                    Use Employee ID
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMethod('contact')}
+                  style={[styles.tab, method === 'contact' && styles.tabActive]}
+                >
+                  <Text style={[styles.tabText, method === 'contact' && styles.tabTextActive]}>
+                    Use Contact Details
+                  </Text>
+                </Pressable>
               </View>
-              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+
+              {method === 'employeeId' ? (
+                <>
+                  <Text style={styles.inputLabel}>Employee ID</Text>
+                  <View style={[styles.inputRow, employeeIdError ? styles.inputError : null]}>
+                    <TextInput
+                      value={employeeId}
+                      onChangeText={(text) => {
+                        setEmployeeId(text.toUpperCase());
+                        setEmployeeIdError(null);
+                      }}
+                      placeholder="EMP-INT-001"
+                      placeholderTextColor={Colors.textMuted}
+                      autoCapitalize="characters"
+                      style={styles.textInput}
+                    />
+                  </View>
+                  {employeeIdError ? <Text style={styles.errorText}>{employeeIdError}</Text> : null}
+                </>
+              ) : (
+                <>
+                  <Text style={styles.inputLabel}>Contact Number</Text>
+                  <View style={[styles.phoneRow, contactError ? styles.inputError : null]}>
+                    <View style={styles.countryCode}>
+                      <Text style={styles.countryCodeText}>+91</Text>
+                      <ChevronDown size={14} color={Colors.textMuted} />
+                    </View>
+                    <TextInput
+                      value={contact}
+                      onChangeText={(text) => {
+                        setContact(text.replace(/\D/g, '').slice(0, 10));
+                        setContactError(null);
+                      }}
+                      placeholder="9999999999"
+                      placeholderTextColor={Colors.textMuted}
+                      keyboardType="phone-pad"
+                      style={styles.phoneInput}
+                    />
+                  </View>
+                  {contactError ? <Text style={styles.errorText}>{contactError}</Text> : null}
+                </>
+              )}
 
               <Text style={[styles.inputLabel, styles.passwordLabel]}>Password</Text>
               <View style={[styles.inputRow, passwordError ? styles.inputError : null]}>
@@ -160,10 +221,6 @@ export default function BusinessLoginScreen() {
                     {rememberMe ? <Text style={styles.checkmark}>✓</Text> : null}
                   </View>
                   <Text style={styles.checkboxLabel}>Remember me</Text>
-                </Pressable>
-
-                <Pressable onPress={() => router.push('/login/forgot-password')}>
-                  <Text style={styles.forgotLink}>Forgot password?</Text>
                 </Pressable>
               </View>
 
@@ -249,6 +306,35 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 20,
   },
+  tabRow: {
+    flexDirection: 'row',
+    backgroundColor: TAB_BG,
+    borderRadius: 8,
+    padding: 3,
+    marginBottom: 20,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  tabActive: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  tabTextActive: {
+    color: Colors.textPrimary,
+  },
   inputLabel: {
     fontSize: 12,
     color: Colors.textMuted,
@@ -274,6 +360,37 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     paddingVertical: 12,
   },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: Spacing.inputHeight,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.input,
+    backgroundColor: Colors.white,
+    overflow: 'hidden',
+  },
+  countryCode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: '100%',
+    borderRightWidth: 1,
+    borderRightColor: Colors.border,
+    gap: 4,
+  },
+  countryCodeText: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  phoneInput: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
   eyeBtn: {
     marginLeft: 8,
     padding: 4,
@@ -289,7 +406,7 @@ const styles = StyleSheet.create({
   optionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginTop: 12,
     marginBottom: 8,
   },
@@ -320,12 +437,6 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 13,
     color: Colors.textMuted,
-  },
-  forgotLink: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: ACCENT_TAN,
-    textDecorationLine: 'underline',
   },
   loginBtn: {
     height: Spacing.buttonHeight,

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
@@ -51,10 +51,10 @@ export default function GetStartedScreen() {
           />
 
           <View style={styles.buttonGap}>
-            <LandingButton
-              title="Login as a Employee"
-              onPress={() => router.push('/login')}
-            />
+          <LandingButton
+            title="Login as a Employee"
+            onPress={() => router.push('/login/employee' as Href)}
+          />
           </View>
         </View>
       </View>

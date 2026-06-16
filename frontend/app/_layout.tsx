@@ -16,19 +16,25 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const segments = useSegments();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
 
   useEffect(() => {
+    if (!hasHydrated) return;
+
     const root = segments[0];
     const inDashboard = root === 'dashboard';
-    const inPublicRoute =
-      !root || root === 'register' || root === 'login';
+    const inPublicRoute = !root || root === 'register' || root === 'login';
 
     if (!isAuthenticated && inDashboard) {
       router.replace('/');
     } else if (isAuthenticated && inPublicRoute) {
       router.replace('/dashboard');
     }
-  }, [isAuthenticated, segments, router]);
+  }, [hasHydrated, isAuthenticated, segments, router]);
+
+  if (!hasHydrated) {
+    return null;
+  }
 
   return <>{children}</>;
 }

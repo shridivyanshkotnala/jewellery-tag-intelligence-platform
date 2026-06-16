@@ -1,4 +1,3 @@
-import { BUSINESS_PROFILE_VIEW, DUMMY } from '@/constants/dummyData';
 import type { RegistrationData } from '@/types/auth';
 
 export interface BusinessProfile {
@@ -9,22 +8,34 @@ export interface BusinessProfile {
   address: string;
 }
 
-export function getBusinessProfile(registration: Partial<RegistrationData>): BusinessProfile {
+const EMPTY_PROFILE: BusinessProfile = {
+  businessName: '',
+  gstNumber: '',
+  phone: '',
+  email: '',
+  address: '',
+};
+
+function buildProfile(registration: Partial<RegistrationData>): BusinessProfile {
   return {
-    businessName: registration.businessName ?? DUMMY.businessName,
-    gstNumber: registration.gstNumber ?? BUSINESS_PROFILE_VIEW.gstNumber,
-    phone: registration.phone ?? DUMMY.phone,
-    email: registration.email ?? BUSINESS_PROFILE_VIEW.email,
-    address: registration.address ?? DUMMY.address,
+    businessName: registration.businessName ?? '',
+    gstNumber: registration.gstNumber ?? '',
+    phone: registration.phone ?? '',
+    email: registration.email ?? '',
+    address: registration.address ?? '',
   };
 }
 
+export function getBusinessProfile(registration: Partial<RegistrationData>): BusinessProfile {
+  const profile = buildProfile(registration);
+  const hasData = Object.values(profile).some((value) => value.trim().length > 0);
+  return hasData ? profile : EMPTY_PROFILE;
+}
+
 export function getEditableBusinessProfile(registration: Partial<RegistrationData>): BusinessProfile {
-  return {
-    businessName: registration.businessName ?? DUMMY.businessName,
-    gstNumber: registration.gstNumber ?? DUMMY.gstNumber,
-    phone: registration.phone ?? DUMMY.phone,
-    email: registration.email ?? DUMMY.email,
-    address: registration.address ?? DUMMY.address,
-  };
+  return buildProfile(registration);
+}
+
+export function formatProfileValue(value: string, fallback = 'Not set'): string {
+  return value.trim() || fallback;
 }

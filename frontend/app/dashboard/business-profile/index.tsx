@@ -8,7 +8,7 @@ import { BottomNav } from '@/components/dashboard/BottomNav';
 import { BusinessProfileBanner } from '@/components/settings/BusinessProfileBanner';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
-import { getBusinessProfile } from '@/utils/businessProfile';
+import { getBusinessProfile, formatProfileValue } from '@/utils/businessProfile';
 
 const BUTTON_GREEN = '#1E2F28';
 
@@ -53,7 +53,7 @@ export default function BusinessProfileScreen() {
           <Text style={styles.headerTitle}>Profile</Text>
         </View>
 
-        <BusinessProfileBanner businessName={profile.businessName} />
+        <BusinessProfileBanner businessName={formatProfileValue(profile.businessName, 'Your Business')} />
 
         <View style={styles.detailsCard}>
           <View style={styles.detailsHeader}>
@@ -61,11 +61,14 @@ export default function BusinessProfileScreen() {
           </View>
 
           <View style={styles.detailsBody}>
-            <DetailRow label="Name of Buisness" value={profile.businessName} />
-            <DetailRow label="GST No." value={profile.gstNumber} />
-            <DetailRow label="Phone No." value={`+91 ${profile.phone}`} />
-            <DetailRow label="Email" value={profile.email} />
-            <DetailRow label="Address" value={profile.address} multiline />
+            <DetailRow label="Name of Buisness" value={formatProfileValue(profile.businessName)} />
+            <DetailRow label="GST No." value={formatProfileValue(profile.gstNumber)} />
+            <DetailRow
+              label="Phone No."
+              value={profile.phone ? `+91 ${profile.phone}` : 'Not set'}
+            />
+            <DetailRow label="Email" value={formatProfileValue(profile.email)} />
+            <DetailRow label="Address" value={formatProfileValue(profile.address)} multiline />
           </View>
         </View>
 

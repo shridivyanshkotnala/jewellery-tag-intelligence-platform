@@ -17,7 +17,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
 import { BottomNav } from '@/components/dashboard/BottomNav';
-import { DUMMY } from '@/constants/dummyData';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 
 const ACCENT_GOLD = '#D4C19C';
@@ -27,7 +26,7 @@ export default function PasswordManagerScreen() {
   const router = useRouter();
 
   const [oldPassword, setOldPassword] = useState('Old Password123');
-  const [newPassword, setNewPassword] = useState(DUMMY.email);
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('Password@123');
   const [showConfirm, setShowConfirm] = useState(false);
   const [updating, setUpdating] = useState(false);

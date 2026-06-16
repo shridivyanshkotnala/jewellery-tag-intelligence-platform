@@ -1,12 +1,14 @@
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { loadState, saveState } = require('../store/authFileStore');
 
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
-const businessesByGst = new Map();
-const businessesById = new Map();
-const otpsByBusinessId = new Map();
-const usersByEmail = new Map();
+let state = loadState();
+
+function persist() {
+  saveState(state);
+}
 
 function normalizeGstNumber(gstNumber) {
   return String(gstNumber || '').trim().toUpperCase().replace(/^GSTN/i, '');
@@ -48,7 +50,7 @@ function confirmGst(gstNumber) {
     throw error;
   }
 
-  const existing = businessesByGst.get(normalized);
+  const existing = state.businessesByGst[normalized];
   if (existing) {
     return existing;
   }
@@ -63,13 +65,14 @@ function confirmGst(gstNumber) {
     createdAt: new Date().toISOString(),
   };
 
-  businessesByGst.set(normalized, business);
-  businessesById.set(business.businessId, business);
+  state.businessesByGst[normalized] = business;
+  state.businessesById[business.businessId] = business;
+  persist();
   return business;
 }
 
 function submitContactDetails({ businessId, phone, email }) {
-  const business = businessesById.get(businessId);
+  const business = state.businessesById[businessId];
   if (!business) {
     const error = new Error('Business not found');
     error.statusCode = 404;
@@ -82,7 +85,8 @@ function submitContactDetails({ businessId, phone, email }) {
 
   const phoneOtp = generateOtp();
   const emailOtp = generateOtp();
-  otpsByBusinessId.set(businessId, { phoneOtp, emailOtp });
+  state.otpsByBusinessId[businessId] = { phoneOtp, emailOtp };
+  persist();
 
   console.log(`[auth] Phone OTP for ${phone}: ${phoneOtp}`);
   console.log(`[auth] Email OTP for ${email}: ${emailOtp}`);
@@ -91,14 +95,14 @@ function submitContactDetails({ businessId, phone, email }) {
 }
 
 function verifyPhoneOtp({ businessId, otp }) {
-  const business = businessesById.get(businessId);
+  const business = state.businessesById[businessId];
   if (!business) {
     const error = new Error('Business not found');
     error.statusCode = 404;
     throw error;
   }
 
-  const stored = otpsByBusinessId.get(businessId);
+  const stored = state.otpsByBusinessId[businessId];
   if (!stored || stored.phoneOtp !== String(otp).trim()) {
     const error = new Error('Invalid phone OTP');
     error.statusCode = 400;
@@ -106,18 +110,19 @@ function verifyPhoneOtp({ businessId, otp }) {
   }
 
   business.phoneVerified = true;
+  persist();
   return { businessId, message: 'Phone verified successfully' };
 }
 
 function verifyEmailOtp({ businessId, otp }) {
-  const business = businessesById.get(businessId);
+  const business = state.businessesById[businessId];
   if (!business) {
     const error = new Error('Business not found');
     error.statusCode = 404;
     throw error;
   }
 
-  const stored = otpsByBusinessId.get(businessId);
+  const stored = state.otpsByBusinessId[businessId];
   if (!stored || stored.emailOtp !== String(otp).trim()) {
     const error = new Error('Invalid email OTP');
     error.statusCode = 400;
@@ -125,11 +130,12 @@ function verifyEmailOtp({ businessId, otp }) {
   }
 
   business.emailVerified = true;
+  persist();
   return { businessId, message: 'Email verified successfully' };
 }
 
 function createPassword({ businessId, password, confirmPassword }) {
-  const business = businessesById.get(businessId);
+  const business = state.businessesById[businessId];
   if (!business) {
     const error = new Error('Business not found');
     error.statusCode = 404;
@@ -160,18 +166,19 @@ function createPassword({ businessId, password, confirmPassword }) {
     throw error;
   }
 
-  usersByEmail.set(business.email.toLowerCase(), {
+  state.usersByEmail[business.email.toLowerCase()] = {
     businessId,
     email: business.email.toLowerCase(),
     passwordHash: hashPassword(password),
-  });
+  };
 
   business.status = 'ACTIVE';
+  persist();
   return { businessId, message: 'Registration completed successfully' };
 }
 
 function loginBusiness({ email, password }) {
-  const user = usersByEmail.get(String(email || '').trim().toLowerCase());
+  const user = state.usersByEmail[String(email || '').trim().toLowerCase()];
   if (!user || user.passwordHash !== hashPassword(password)) {
     const error = new Error('Invalid email or password');
     error.statusCode = 401;

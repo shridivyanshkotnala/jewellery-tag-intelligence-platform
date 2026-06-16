@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { AuthHeader } from '@/components/ui/AuthHeader';
@@ -9,23 +9,25 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TabSwitcher } from '@/components/ui/TabSwitcher';
 import { TextField } from '@/components/ui/TextField';
-import { DUMMY } from '@/constants/dummyData';
 import { useAuthStore } from '@/store/authStore';
-import { resetPassword } from '@/utils/mockApi';
 import { validateEmail, validatePhone } from '@/utils/validation';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const loginMethod = useAuthStore((s) => s.loginMethod);
   const setLoginMethod = useAuthStore((s) => s.setLoginMethod);
+  const savedEmail = useAuthStore((s) => s.savedEmail);
+  const savedPhone = useAuthStore((s) => s.savedPhone);
 
-  const [email, setEmail] = useState(DUMMY.email);
-  const [phone, setPhone] = useState(DUMMY.phone);
+  const [email, setEmail] = useState(savedEmail || '');
+  const [phone, setPhone] = useState(savedPhone || '');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
+    setInfoMessage(null);
+
     if (loginMethod === 'email') {
       const eErr = validateEmail(email);
       setEmailError(eErr);
@@ -38,13 +40,9 @@ export default function ForgotPasswordScreen() {
       if (pErr) return;
     }
 
-    setLoading(true);
-    try {
-      await resetPassword(loginMethod === 'phone' ? phone : email);
-      router.push('/login/otp');
-    } finally {
-      setLoading(false);
-    }
+    setInfoMessage(
+      'Password reset is not available in the app yet. Please sign in with your registered business email and password.',
+    );
   };
 
   return (
@@ -69,8 +67,8 @@ export default function ForgotPasswordScreen() {
         <Text className="mb-1 text-xl font-bold text-text-primary">Forgot Password?</Text>
         <Text className="mb-5 text-sm leading-5 text-text-secondary">
           {loginMethod === 'phone'
-            ? 'Enter your phone number to reset your password.'
-            : 'Enter your email to reset your password.'}
+            ? 'Enter your registered phone number.'
+            : 'Enter your registered business email.'}
         </Text>
 
         {loginMethod === 'email' ? (
@@ -90,7 +88,15 @@ export default function ForgotPasswordScreen() {
           />
         )}
 
-        <PrimaryButton title="Continue" onPress={handleContinue} loading={loading} />
+        {infoMessage ? (
+          <Text className="mb-3 text-sm leading-5 text-text-secondary">{infoMessage}</Text>
+        ) : null}
+
+        <PrimaryButton title="Continue" onPress={handleContinue} />
+
+        <Pressable onPress={() => router.replace('/login')} style={{ marginTop: 16, alignSelf: 'center' }}>
+          <Text className="text-sm font-medium text-accent underline">Back to Login</Text>
+        </Pressable>
       </FormCard>
     </ScreenContainer>
   );

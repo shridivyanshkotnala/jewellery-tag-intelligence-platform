@@ -16,7 +16,6 @@ import { ChevronLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
-import { DUMMY } from '@/constants/dummyData';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { submitBusinessContactDetails, verifyBusinessPhoneOtp } from '@/utils/authApi';
@@ -29,12 +28,12 @@ const OTP_LENGTH = 6;
 export default function OtpPhoneScreen() {
   const router = useRouter();
   const registration = useAuthStore((s) => s.registration);
-  const phone = registration.phone ?? DUMMY.phone;
-  const email = registration.email ?? DUMMY.email;
+  const phone = registration.phone ?? '';
+  const email = registration.email ?? '';
   const businessId = registration.businessId;
   const inputRef = useRef<TextInput>(null);
 
-  const [otp, setOtp] = useState(DUMMY.otp);
+  const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);

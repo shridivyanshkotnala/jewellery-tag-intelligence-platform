@@ -17,6 +17,9 @@ type MetalTab = 'gold' | 'silver';
 export default function DashboardScreen() {
   const [activeTab, setActiveTab] = useState<MetalTab>('gold');
   const [refreshing, setRefreshing] = useState(false);
+  const today = new Date();
+  const dayLabel = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const dateNum = today.getDate();
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -37,8 +40,8 @@ export default function DashboardScreen() {
             Today Market{'\n'}Overview
           </Text>
           <View style={styles.dateBadge}>
-            <Text style={styles.dateDay}>SAT</Text>
-            <Text style={styles.dateNum}>23</Text>
+            <Text style={styles.dateDay}>{dayLabel}</Text>
+            <Text style={styles.dateNum}>{dateNum}</Text>
           </View>
         </View>
 

@@ -35,6 +35,7 @@ logs/
 uploads/
 temp/
 tmp/
+backend/data/
 
 # IDE & Editor
 .vscode/settings.json
