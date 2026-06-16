@@ -67,9 +67,36 @@ const sendPhoneOtp = async (businessId, phone) => {
     expiresAt
   });
 
-  // Mock MSG91 Integration
-  console.log(`[MSG91 MOCK] Sending Phone OTP ${otp} to ${phone}`);
-  
+  // MSG91 API Integration
+  try {
+    const options = {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        authkey: config.msg91.authKey
+      },
+      body: JSON.stringify({
+        template_id: config.msg91.templateId,
+        mobile: `91${phone}`,
+        otp: otp
+      })
+    };
+
+    const response = await fetch('https://control.msg91.com/api/v5/otp', options);
+    const data = await response.json();
+    
+    if (data.type === 'error') {
+      console.error('MSG91 Error:', data);
+      throw new Error('Failed to send SMS OTP');
+    }
+
+    console.log(`[MSG91 SUCCESS] Sent Phone OTP to ${phone}`);
+  } catch (error) {
+    console.error('MSG91 Request Error:', error);
+    throw new Error('Failed to send SMS OTP');
+  }
+
   return true;
 };
 
