@@ -69,21 +69,21 @@ const sendPhoneOtp = async (businessId, phone) => {
 
   // MSG91 API Integration
   try {
+    const url = new URL('https://control.msg91.com/api/v5/otp');
+    url.searchParams.append('template_id', config.msg91.templateId);
+    url.searchParams.append('mobile', `91${phone}`);
+    url.searchParams.append('otp', otp);
+
     const options = {
       method: 'POST',
       headers: {
         accept: 'application/json',
         'content-type': 'application/json',
         authkey: config.msg91.authKey
-      },
-      body: JSON.stringify({
-        template_id: config.msg91.templateId,
-        mobile: `91${phone}`,
-        otp: otp
-      })
+      }
     };
 
-    const response = await fetch('https://control.msg91.com/api/v5/otp', options);
+    const response = await fetch(url.toString(), options);
     const data = await response.json();
     
     if (data.type === 'error') {
