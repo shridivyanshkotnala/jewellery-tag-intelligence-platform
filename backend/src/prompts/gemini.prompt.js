@@ -99,6 +99,7 @@ Never calculate purity.
 Never calculate rates.
 Never convert units.
 Never estimate missing fields.
+Never calculate or guess labour charges. If labour is not explicitly visible on the tag, the labour field MUST remain empty. Show labour value ONLY when it is clearly on the tag.
 
 If uncertain:
 Return empty value.
