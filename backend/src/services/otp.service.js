@@ -71,36 +71,47 @@ const sendPhoneOtp = async (businessId, phone) => {
   console.log(`[DEV OTP] Generated Phone OTP: ${otp} for ${phone}`);
 
   // MSG91 API Integration
-  try {
-    const options = {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        authkey: config.msg91.authKey
-      },
-      body: JSON.stringify({
-        template_id: config.msg91.templateId,
-        mobile: `91${phone}`,
-        otp: otp
-      })
-    };
+  // MSG91 API Integration
+try {
+  const options = {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      authkey: config.msg91.authKey
+    },
+    body: JSON.stringify({
+      template_id: config.msg91.templateId,
+      mobile: `91${phone}`,
+      otp: otp
+    })
+  };
 
-    const response = await fetch('https://control.msg91.com/api/v5/otp', options);
-    const data = await response.json();
-    
-    if (data.type === 'error') {
-      console.error('MSG91 Error:', data);
-      throw new Error('Failed to send SMS OTP');
-    }
+  console.log('Phone received:', phone);
+  console.log('Template ID:', config.msg91.templateId);
 
-    console.log(`[MSG91 SUCCESS] Sent Phone OTP to ${phone}`);
-  } catch (error) {
-    console.error('MSG91 Request Error:', error);
+  const response = await fetch(
+    'https://control.msg91.com/api/v5/otp',
+    options
+  );
+
+  console.log('HTTP Status:', response.status);
+
+  const data = await response.json();
+  console.log('MSG91 Response:', data);
+
+  if (data.type === 'error') {
+    console.error('MSG91 Error:', data);
     throw new Error('Failed to send SMS OTP');
   }
 
-  return true;
+  console.log(`[MSG91 SUCCESS] Sent Phone OTP to ${phone}`);
+} catch (error) {
+  console.error('MSG91 Request Error:', error);
+  throw new Error('Failed to send SMS OTP');
+}
+
+return true;
 };
 
 const sendEmailOtp = async (businessId, email) => {
