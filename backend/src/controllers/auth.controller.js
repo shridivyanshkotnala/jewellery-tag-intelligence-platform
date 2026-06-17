@@ -1,5 +1,7 @@
 const gstService = require('../services/gst.service');
 const registrationService = require('../services/registration.service');
+const otpService = require('../services/otp.service');
+const config = require('../config/env');
 const { sendSuccess } = require('../utils/apiResponse');
 
 const verifyGst = async (req, res, next) => {
@@ -30,7 +32,20 @@ const confirmGst = async (req, res, next) => {
 const submitContactDetails = async (req, res, next) => {
   try {
     const { businessId, phone, email } = req.body;
+    console.log(`[auth] contact-details request: businessId=${businessId}, phone=${phone}, email=${email}`);
     const data = await registrationService.submitContactDetails(businessId, phone, email);
+    sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getDevOtps = async (req, res, next) => {
+  try {
+    if (config.env !== 'development') {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+    const data = otpService.getDevOtps(req.params.businessId);
     sendSuccess(res, data);
   } catch (err) {
     next(err);
@@ -91,6 +106,7 @@ module.exports = {
   verifyGst,
   confirmGst,
   submitContactDetails,
+  getDevOtps,
   verifyPhoneOtp,
   verifyEmailOtp,
   createPassword,

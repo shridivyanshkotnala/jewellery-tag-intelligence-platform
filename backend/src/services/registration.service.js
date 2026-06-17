@@ -43,7 +43,7 @@ const confirmGst = async (gstData) => {
 
 const submitContactDetails = async (businessId, phone, email) => {
   const business = await Business.findById(businessId);
-  if (!business) throw new Error('Business not found');
+  if (!business) throw new Error('REGISTRATION_SESSION_EXPIRED');
 
   // Check if email or phone is already taken by a fully registered user
   const existingUser = await BusinessUser.findOne({ $or: [{ email }, { phone }] });

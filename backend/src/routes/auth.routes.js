@@ -17,6 +17,7 @@ const router = express.Router();
 router.post('/business/gst/verify', gstRateLimiter, validate(gstVerifySchema), authController.verifyGst);
 router.post('/business/gst/confirm', validate(gstConfirmSchema), authController.confirmGst);
 router.post('/business/contact-details', validate(contactDetailsSchema), authController.submitContactDetails);
+router.get('/dev/otps/:businessId', authController.getDevOtps);
 router.post('/business/verify-phone-otp', validate(verifyOtpSchema), authController.verifyPhoneOtp);
 router.post('/business/verify-email-otp', validate(verifyOtpSchema), authController.verifyEmailOtp);
 router.post('/business/create-password', validate(createPasswordSchema), authController.createPassword);

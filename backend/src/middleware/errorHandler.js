@@ -12,6 +12,7 @@ const errorHandler = (err, req, res, next) => {
     'RESEND_TIMEOUT': { status: 429, msg: 'Please wait before requesting another OTP.' },
     'EMAIL_ALREADY_EXISTS': { status: 409, msg: 'This email is already associated with an account.' },
     'PHONE_ALREADY_EXISTS': { status: 409, msg: 'This phone number is already associated with an account.' },
+    'REGISTRATION_SESSION_EXPIRED': { status: 410, msg: 'Registration session expired. Please verify GST again.' },
     'UNAUTHORIZED': { status: 401, msg: 'Missing or invalid authentication token.' },
     'FORBIDDEN': { status: 403, msg: 'You do not have permission to access this resource.' },
     'INVALID_CREDENTIALS': { status: 401, msg: 'Invalid email or password.' },

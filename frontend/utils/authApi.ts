@@ -1,4 +1,5 @@
 import { apiRequest, ApiError } from '@/utils/apiClient';
+import { getApiUrl } from '@/constants/api';
 import { unwrapApiData } from '@/utils/apiResponse';
 import type { BusinessLoginResponse } from '@/types/auth';
 import { normalizeGstNumber } from '@/utils/validation';
@@ -145,6 +146,30 @@ export async function submitBusinessContactDetails(payload: {
   const unwrapped = unwrapEnvelope(response);
   if (!isSuccessfulResponse(response, unwrapped)) {
     throw new Error(resolveApiMessage(response, unwrapped, 'Failed to submit contact details.'));
+  }
+}
+
+export async function fetchDevOtps(
+  businessId: string,
+): Promise<{ phone?: string; email?: string }> {
+  if (!__DEV__ || !businessId) {
+    return {};
+  }
+
+  try {
+    const response = await fetch(getApiUrl(`/auth/dev/otps/${businessId}`));
+    if (!response.ok) {
+      return {};
+    }
+
+    const body = (await response.json()) as ApiEnvelope<Record<string, unknown>>;
+    const unwrapped = unwrapEnvelope(body);
+    return {
+      phone: typeof unwrapped.phone === 'string' ? unwrapped.phone : undefined,
+      email: typeof unwrapped.email === 'string' ? unwrapped.email : undefined,
+    };
+  } catch {
+    return {};
   }
 }
 

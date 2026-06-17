@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { useDevOtp } from '@/hooks/useDevOtp';
 import { useAuthStore } from '@/store/authStore';
 import { submitBusinessContactDetails, verifyBusinessPhoneOtp } from '@/utils/authApi';
 import { maskPhone, validateOtp } from '@/utils/validation';
@@ -37,6 +38,7 @@ export default function OtpPhoneScreen() {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const { devOtp, refreshDevOtp } = useDevOtp(businessId, 'phone');
 
   const digits = otp.padEnd(OTP_LENGTH, ' ').split('').slice(0, OTP_LENGTH);
 
@@ -77,6 +79,7 @@ export default function OtpPhoneScreen() {
       await submitBusinessContactDetails({ businessId, phone, email });
       setOtp('');
       setOtpError(null);
+      await refreshDevOtp();
     } catch (error) {
       setOtpError(error instanceof Error ? error.message : 'Failed to resend OTP.');
     } finally {
@@ -118,6 +121,13 @@ export default function OtpPhoneScreen() {
               <Text style={styles.cardDescription}>
                 Enter the verification code we just sent to your number {maskPhone(phone)}.
               </Text>
+
+              {__DEV__ && devOtp ? (
+                <View style={styles.devOtpBox}>
+                  <Text style={styles.devOtpLabel}>Dev phone OTP</Text>
+                  <Text style={styles.devOtpValue}>{devOtp}</Text>
+                </View>
+              ) : null}
 
               <Pressable onPress={() => inputRef.current?.focus()} style={styles.otpRow}>
                 {digits.map((digit, index) => (
@@ -239,6 +249,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: Colors.textLabel,
     marginTop: 8,
+  },
+  devOtpBox: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: Radius.input,
+    backgroundColor: '#FFF8E6',
+    borderWidth: 1,
+    borderColor: '#F0D98C',
+  },
+  devOtpLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 4,
+  },
+  devOtpValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    letterSpacing: 4,
   },
   otpRow: {
     flexDirection: 'row',

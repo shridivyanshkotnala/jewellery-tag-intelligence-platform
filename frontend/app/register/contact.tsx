@@ -16,6 +16,7 @@ import { ChevronDown, ChevronLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
+import { API_BASE_URL } from '@/constants/api';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { submitBusinessContactDetails } from '@/utils/authApi';
@@ -57,7 +58,17 @@ export default function ContactDetailsScreen() {
       });
       router.push('/register/otp-phone');
     } catch (error) {
-      setEmailError(error instanceof Error ? error.message : 'Failed to send OTP.');
+      const message = error instanceof Error ? error.message : 'Failed to send OTP.';
+      if (
+        message.includes('Registration session expired') ||
+        message.includes('REGISTRATION_SESSION_EXPIRED') ||
+        message.includes('verify GST again')
+      ) {
+        updateRegistration({ businessId: undefined });
+        setEmailError('Session expired after backend restart. Please verify GST again.');
+        return;
+      }
+      setEmailError(message);
     } finally {
       setLoading(false);
     }
@@ -134,6 +145,10 @@ export default function ContactDetailsScreen() {
                 />
               </View>
               {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+
+              {__DEV__ ? (
+                <Text style={styles.devHint}>Dev API: {API_BASE_URL}</Text>
+              ) : null}
 
               <TouchableOpacity
                 onPress={handleContinue}
@@ -288,6 +303,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.dangerText,
     marginTop: 8,
+  },
+  devHint: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 12,
   },
   continueBtn: {
     height: Spacing.buttonHeight,

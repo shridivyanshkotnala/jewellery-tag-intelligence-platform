@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 export const API_V1_PREFIX = '/api/v1';
 
@@ -15,16 +16,20 @@ function getMetroHost(): string | null {
 }
 
 export function resolveApiBaseUrl(): string {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-  if (envUrl) {
-    return envUrl.replace(/\/$/, '');
-  }
-
   if (__DEV__) {
     const metroHost = getMetroHost();
     if (metroHost && metroHost !== 'localhost' && metroHost !== '127.0.0.1') {
       return `http://${metroHost}:3000`;
     }
+
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:3000';
+    }
+  }
+
+  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (envUrl) {
+    return envUrl.replace(/\/$/, '');
   }
 
   return 'http://localhost:3000';

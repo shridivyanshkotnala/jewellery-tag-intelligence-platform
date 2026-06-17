@@ -6,14 +6,26 @@ const config = require('../config/env');
 
 const resend = new Resend(config.resend.apiKey);
 const isDevelopment = config.env === 'development';
+const devOtpStore = new Map();
 
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const logDevOtp = (type, otp, destination) => {
-  console.log(`[DEV OTP] ${type} OTP: ${otp} for ${destination}`);
+const rememberDevOtp = (businessId, type, otp, destination) => {
+  const entry = devOtpStore.get(businessId) || {};
+  entry[type.toLowerCase()] = otp;
+  devOtpStore.set(businessId, entry);
+  console.log('');
+  console.log('========================================');
+  console.log(`[DEV OTP] ${type} OTP: ${otp}`);
+  console.log(`[DEV OTP] For: ${destination}`);
+  console.log(`[DEV OTP] businessId: ${businessId}`);
+  console.log('========================================');
+  console.log('');
 };
+
+const getDevOtps = (businessId) => devOtpStore.get(businessId) || {};
 
 // Rate limiting and Resend logic
 const checkOtpRateLimits = async (businessId, type) => {
@@ -66,7 +78,7 @@ const sendPhoneOtp = async (businessId, phone) => {
     expiresAt,
   });
 
-  logDevOtp('Phone', otp, phone);
+  rememberDevOtp(businessId, 'phone', otp, phone);
 
   try {
     const response = await fetch('https://control.msg91.com/api/v5/otp', {
@@ -119,7 +131,7 @@ const sendEmailOtp = async (businessId, email) => {
     expiresAt,
   });
 
-  logDevOtp('Email', otp, email);
+  rememberDevOtp(businessId, 'email', otp, email);
 
   try {
     await resend.emails.send({
@@ -183,4 +195,5 @@ module.exports = {
   sendPhoneOtp,
   sendEmailOtp,
   verifyOtp,
+  getDevOtps,
 };
