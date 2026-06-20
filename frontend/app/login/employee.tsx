@@ -19,8 +19,7 @@ import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useEmployeeStore } from '@/store/employeeStore';
-import { loginEmployeeByPhone } from '@/utils/authApi';
-import { authenticateEmployee } from '@/utils/employeeAuth';
+import { loginEmployeeById, loginEmployeeByPhone } from '@/utils/authApi';
 import { validatePassword, validatePhone } from '@/utils/validation';
 
 const ACCENT_TAN = '#D4C19C';
@@ -83,7 +82,7 @@ export default function EmployeeLoginScreen() {
           );
 
           setAuthToken(apiResult.data.accessToken);
-          setUserRole(apiResult.data.role === 'EMP' ? 'employee' : 'business');
+          setUserRole('employee');
           setLoggedInEmployee(matchedEmployee?.id ?? null);
           setAuthenticated(true);
           if (rememberMe) {
@@ -93,37 +92,32 @@ export default function EmployeeLoginScreen() {
           return;
         }
 
-        const localResult = authenticateEmployee(employees, method, contact, password);
-        if (localResult.success) {
-          setAuthToken(`employee-${localResult.employee.id}`);
-          setUserRole('employee');
-          setLoggedInEmployee(localResult.employee.id);
-          setAuthenticated(true);
-          if (rememberMe) {
-            setSavedEmployeeContact(localResult.employee.employeeId, localResult.employee.phone);
-          }
-          router.replace('/dashboard');
-          return;
-        }
-
-        setFormError(apiResult.error ?? localResult.error);
+        setFormError(apiResult.error ?? 'Login failed.');
         return;
       }
 
-      const result = authenticateEmployee(employees, method, employeeId, password);
+      const apiResult = await loginEmployeeById(employeeId, password);
+      if (apiResult.success && apiResult.data) {
+        const normalizedId = employeeId.trim().toUpperCase();
+        const matchedEmployee = employees.find(
+          (employee) => employee.employeeId.toUpperCase() === normalizedId,
+        );
 
-      if (result.success) {
-        setAuthToken(`employee-${result.employee.id}`);
+        setAuthToken(apiResult.data.accessToken);
         setUserRole('employee');
-        setLoggedInEmployee(result.employee.id);
+        setLoggedInEmployee(matchedEmployee?.id ?? null);
         setAuthenticated(true);
         if (rememberMe) {
-          setSavedEmployeeContact(result.employee.employeeId, result.employee.phone);
+          setSavedEmployeeContact(
+            apiResult.data.employeeId ?? employeeId.trim(),
+            matchedEmployee?.phone ?? '',
+          );
         }
         router.replace('/dashboard');
-      } else {
-        setFormError(result.error);
+        return;
       }
+
+      setFormError(apiResult.error ?? 'Login failed.');
     } finally {
       setLoading(false);
     }

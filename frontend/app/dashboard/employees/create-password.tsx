@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,11 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNav } from '@/components/dashboard/BottomNav';
 import { EmployeeScreenHeader } from '@/components/employees/EmployeeScreenHeader';
-import { getNextEmployeeId } from '@/constants/employeeData';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useEmployeeDraftStore } from '@/store/employeeDraftStore';
 import { useEmployeeStore } from '@/store/employeeStore';
-import type { Employee } from '@/types/employee';
+import { fetchEmployees, finalizeEmployeeCreation } from '@/utils/employeeApi';
 
 const BUTTON_GREEN = '#1B3022';
 const INPUT_BG = '#F4F5F7';
@@ -33,16 +33,17 @@ export default function CreateEmployeePasswordScreen() {
   const mode = useEmployeeDraftStore((s) => s.mode);
   const editEmployeeId = useEmployeeDraftStore((s) => s.editEmployeeId);
 
-  const employees = useEmployeeStore((s) => s.employees);
-  const addEmployee = useEmployeeStore((s) => s.addEmployee);
+  const setEmployees = useEmployeeStore((s) => s.setEmployees);
   const updateEmployee = useEmployeeStore((s) => s.updateEmployee);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
+    setFormError(null);
     const nextErrors = {
       password: !draft.password.trim() ? 'Password is required' : null,
       confirmPassword:
@@ -68,19 +69,17 @@ export default function CreateEmployeePasswordScreen() {
         return;
       }
 
-      const newEmployee: Employee = {
-        id: `emp-${Date.now()}`,
-        employeeId: getNextEmployeeId(employees.length),
-        fullName: draft.fullName,
-        designation: draft.designation,
-        phone: draft.phone,
-        email: draft.email || `${draft.fullName.split(' ')[0].toLowerCase()}@pratham.gmail.com`,
-        gender: draft.gender,
-        password: draft.password,
-        permissions: { ...draft.permissions },
-      };
+      const result = await finalizeEmployeeCreation(draft.password);
+      if (!result.success) {
+        setFormError(result.error ?? 'Failed to create employee.');
+        return;
+      }
 
-      addEmployee(newEmployee);
+      const listResult = await fetchEmployees();
+      if (listResult.success && listResult.data) {
+        setEmployees(listResult.data);
+      }
+
       resetDraft();
       router.replace('/dashboard/employees' as Href);
     } finally {
@@ -155,10 +154,15 @@ export default function CreateEmployeePasswordScreen() {
             disabled={saving}
             style={[styles.submitBtn, saving && styles.submitBtnDisabled]}
           >
-            <Text style={styles.submitText}>
-              {mode === 'edit' ? 'Update Password' : 'Add Employee'}
-            </Text>
+            {saving ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <Text style={styles.submitText}>
+                {mode === 'edit' ? 'Update Password' : 'Add Employee'}
+              </Text>
+            )}
           </TouchableOpacity>
+          {formError ? <Text style={styles.error}>{formError}</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>
 

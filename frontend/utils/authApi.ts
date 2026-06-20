@@ -257,6 +257,44 @@ export async function loginBusiness(email: string, password: string): Promise<{
   }
 }
 
+export async function loginEmployeeById(employeeId: string, password: string): Promise<{
+  success: boolean;
+  data?: BusinessLoginResponse & { role?: string; employeeId?: string };
+  error?: string;
+}> {
+  try {
+    const response = await apiRequest<ApiEnvelope<Record<string, unknown>>>('/auth/employee/login', {
+      method: 'POST',
+      body: { employeeId: employeeId.trim(), password },
+    });
+    const unwrapped = unwrapEnvelope(response);
+    if (!isSuccessfulResponse(response, unwrapped)) {
+      return {
+        success: false,
+        error: resolveApiMessage(response, unwrapped, 'Login failed.'),
+      };
+    }
+    const accessToken = readString(unwrapped, ['accessToken', 'token']);
+    const refreshToken = readString(unwrapped, ['refreshToken']);
+    const role = readString(unwrapped, ['role']);
+    const resolvedEmployeeId = readString(unwrapped, ['employeeId']);
+
+    if (!accessToken) {
+      return { success: false, error: 'Login response missing access token.' };
+    }
+
+    return {
+      success: true,
+      data: { accessToken, refreshToken, role, employeeId: resolvedEmployeeId ?? employeeId.trim() },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof ApiError ? error.message : 'Login failed.',
+    };
+  }
+}
+
 export async function loginEmployeeByPhone(phone: string, password: string): Promise<{
   success: boolean;
   data?: BusinessLoginResponse & { role?: string };

@@ -2,11 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { DEMO_EMPLOYEES } from '@/constants/employeeData';
 import type { Employee } from '@/types/employee';
 
 interface EmployeeState {
   employees: Employee[];
+  setEmployees: (employees: Employee[]) => void;
   addEmployee: (employee: Employee) => void;
   updateEmployee: (id: string, data: Partial<Employee>) => void;
   removeEmployee: (id: string) => void;
@@ -15,7 +15,8 @@ interface EmployeeState {
 export const useEmployeeStore = create<EmployeeState>()(
   persist(
     (set) => ({
-      employees: DEMO_EMPLOYEES,
+      employees: [],
+      setEmployees: (employees) => set({ employees }),
       addEmployee: (employee) =>
         set((state) => ({
           employees: [employee, ...state.employees],

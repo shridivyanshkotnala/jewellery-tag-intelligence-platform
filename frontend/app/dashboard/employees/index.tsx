@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNav } from '@/components/dashboard/BottomNav';
@@ -11,14 +11,39 @@ import { EmployeeSearchBar } from '@/components/employees/EmployeeSearchBar';
 import { Colors, Spacing } from '@/constants/theme';
 import { useEmployeeDraftStore } from '@/store/employeeDraftStore';
 import { useEmployeeStore } from '@/store/employeeStore';
+import { fetchEmployees } from '@/utils/employeeApi';
 
 export default function EmployeesScreen() {
   const router = useRouter();
   const employees = useEmployeeStore((s) => s.employees);
+  const setEmployees = useEmployeeStore((s) => s.setEmployees);
   const resetEmployeeDraft = useEmployeeDraftStore((s) => s.resetDraft);
   const setMode = useEmployeeDraftStore((s) => s.setMode);
 
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadEmployees = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await fetchEmployees();
+      if (result.success && result.data) {
+        setEmployees(result.data);
+      } else {
+        setError(result.error ?? 'Failed to load employees.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [setEmployees]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadEmployees();
+    }, [loadEmployees]),
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -50,13 +75,23 @@ export default function EmployeesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filtered.map((employee) => (
-          <EmployeeListCard
-            key={employee.id}
-            employee={employee}
-            onPress={() => router.push(`/dashboard/employees/${employee.id}` as Href)}
-          />
-        ))}
+        {loading ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator color={Colors.textPrimary} />
+          </View>
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : filtered.length === 0 ? (
+          <Text style={styles.emptyText}>No employees found.</Text>
+        ) : (
+          filtered.map((employee) => (
+            <EmployeeListCard
+              key={employee.id}
+              employee={employee}
+              onPress={() => router.push(`/dashboard/employees/${employee.id}` as Href)}
+            />
+          ))
+        )}
       </ScrollView>
 
       <View style={styles.fabWrap}>
@@ -88,5 +123,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.screenHorizontal,
     bottom: 100,
+  },
+  centerState: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.dangerText,
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
 });

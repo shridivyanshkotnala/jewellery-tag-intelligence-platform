@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +12,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useEmployeeDraftStore } from '@/store/employeeDraftStore';
 import { useEmployeeStore } from '@/store/employeeStore';
 import type { EmployeePermissionKey, ExtraPermissionKey } from '@/types/employee';
+import { buildEmployeeDraftPayload, createEmployeeDraft } from '@/utils/employeeApi';
 
 const BUTTON_GREEN = '#1B3022';
 
@@ -67,19 +69,36 @@ const EXTRA_SECTIONS: {
 
 export default function EmployeePermissionsExtraScreen() {
   const router = useRouter();
+  const draft = useEmployeeDraftStore((s) => s.draft);
   const permissions = useEmployeeDraftStore((s) => s.draft.permissions);
   const togglePermission = useEmployeeDraftStore((s) => s.togglePermission);
   const mode = useEmployeeDraftStore((s) => s.mode);
   const editEmployeeId = useEmployeeDraftStore((s) => s.editEmployeeId);
   const updateEmployee = useEmployeeStore((s) => s.updateEmployee);
 
-  const handleContinue = () => {
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleContinue = async () => {
+    setFormError(null);
+
     if (mode === 'edit' && editEmployeeId) {
       updateEmployee(editEmployeeId, { permissions: { ...permissions } });
       router.replace(`/dashboard/employees/${editEmployeeId}` as Href);
       return;
     }
-    router.push('/dashboard/employees/create-password' as Href);
+
+    setSaving(true);
+    try {
+      const result = await createEmployeeDraft(buildEmployeeDraftPayload(draft));
+      if (!result.success) {
+        setFormError(result.error ?? 'Failed to save employee draft.');
+        return;
+      }
+      router.push('/dashboard/employees/create-password' as Href);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -143,9 +162,19 @@ export default function EmployeePermissionsExtraScreen() {
           onToggle={togglePermission}
         />
 
-        <TouchableOpacity activeOpacity={0.9} onPress={handleContinue} style={styles.continueBtn}>
-          <Text style={styles.continueText}>Continue</Text>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={handleContinue}
+          disabled={saving}
+          style={[styles.continueBtn, saving && styles.continueBtnDisabled]}
+        >
+          {saving ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <Text style={styles.continueText}>Continue</Text>
+          )}
         </TouchableOpacity>
+        {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
       </ScrollView>
 
       <BottomNav activeRoute="home" />
@@ -222,9 +251,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 24,
   },
+  continueBtnDisabled: {
+    opacity: 0.7,
+  },
   continueText: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
+  },
+  errorText: {
+    fontSize: 13,
+    color: Colors.dangerText,
+    marginTop: 12,
+    textAlign: 'center',
   },
 });
