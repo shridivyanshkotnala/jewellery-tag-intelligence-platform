@@ -22,6 +22,7 @@ app.use(morgan('dev'));
 app.use('/api/v1/scans', scanRoutes);
 app.use('/api/v1/auth', require('./routes/auth.routes'));
 app.use('/api/v1/employees', require('./routes/employee.routes'));
+app.use('/api/v1/rates', require('./routes/rate.routes'));
 
 
 
