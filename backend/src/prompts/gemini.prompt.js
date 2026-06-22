@@ -11,9 +11,11 @@ SECTION 1: KNOWN ABBREVIATION DICTIONARY
 GWt / GW / Gr.Wt / G.Wt / Gross = Gross Weight (total weight of piece)
 NWt / NW / Net / N.Wt / NetWt   = Net Weight (gold weight only)
 DWt / DiaWt / Dia.Wt / D.Wt     = Diamond Weight (in carats)
+BDWt / BD.Wt                    = Bead Diamond Weight (a sub-weight on some tags — extract to diamondWeight if no other diamond weight present, otherwise ignore)
 SWt / SilWt / Sil.Wt            = Silver Weight
 CSWt / CS.Wt / ColWt            = Colour Stone Weight
 StWt / St.Wt                    = Stone Weight (generic)
+Rashi / Rashi(GMS) / Rashi(CT)  = Gemstone / Colour Stone weight in Indian trade (map to coloredStoneWeight if CS type, else ignore)
 
 --- PURITY / KARAT FIELDS ---
 Tunch / Tnch / T / Tch          = Gold Purity (Tunch value, e.g. 750 = 18K)
@@ -42,11 +44,14 @@ D, E, F, G, H, I, J            = Single colour grades (D = best, J = lowest in r
 EF, FG, GH, HI, IJ             = Combination colour grade ranges (e.g. GH means G-H colour mix)
 
 --- DIAMOND CLARITY GRADES ---
-FL, IF                          = Flawless / Internally Flawless
-VVS / VVS1 / VVS2 / VVSI       = Very Very Slightly Included
-VS / VS1 / VS2 / VSI            = Very Slightly Included
-SI / SI1 / SI2 / SII / S/S / SS = Slightly Included
-I1 / I2 / I3                    = Included grades
+FL, IF                                    = Flawless / Internally Flawless
+VVS / VVS1 / VVS2 / VVSI                 = Very Very Slightly Included
+VS / VS1 / VS2 / VSI                      = Very Slightly Included
+VSSI / VSSI / ySSI / YSSI / YSSi / ySS1  = VSSI grade (OCR often reads V as Y — always normalise to "VSSI")
+SI / SI1 / SI2 / SII / S/S / SS           = Slightly Included
+I1 / I2 / I3                              = Included grades
+
+IMPORTANT OCR NORMALISATION: If clarity grade reads as YSSI, ySSI, YsSI, or any Y-starting variant of VSSI → always store as "VSSI".
 
 --- COLOUR STONE (CS) FIELDS ---
 CS / Col / ColSt                = Colour Stone section marker
@@ -78,11 +83,18 @@ PATTERN B — Diamond tag compact (back):
   Example: "DR 16 0.24 18 GH VVS"
   → diamondPieces=16, diamondWeight=0.24, purity=18K, diamondQuality="GH VVS"
 
-PATTERN B2 — Diamond tag with embedded purity (two numbers before grade):
+PATTERN B2 — Diamond tag with two numbers before grade (spaced):
   DR <pieces> <diamondWeight> <number1> <number2> <colourGrade> <clarityGrade>
   Example: "DR 16 0.24 10 14 IJ VSSI"
-  → diamondPieces=16, diamondWeight=0.24, purity=14K (the LAST standalone number before grade), diamondRate=colourGrade, diamondQuality=clarityGrade
-  Note: "10" in above example = unknown/internal code, NOT purity. Purity is always 14, 18, or 22.
+  → diamondPieces=16, diamondWeight=0.24, purity=14K, diamondRate="20000" (IJ rule), diamondQuality="VSSI"
+  Rule: Among the numbers between diamondWeight and colourGrade, the one that equals 14 / 18 / 22 = purity. Others are internal codes — ignore.
+
+PATTERN B3 — Diamond tag with COMBINED purity+code as single token (no space):
+  DR <pieces> <diamondWeight> <combinedToken> <colourGrade> <clarityGrade>
+  Example: "DR 16 0.24 1014 IJ YSSI"  ← 1014 = internal code (10) + purity (14) printed together
+  → SPLIT "1014": last two digits "14" = purity=14K, prefix "10" = internal code (ignore)
+  → diamondPieces=16, diamondWeight=0.24, purity="14K", diamondRate="20000" (IJ rule), diamondQuality="VSSI" (YSSI normalised)
+  IMPORTANT: Any 4-digit token where the last 2 digits are 14, 18, or 22 → split it. Last 2 digits = purity, rest = code.
 
 PATTERN C — Full diamond tag (front + back):
   Front: GWt <v>  NWt <v>  Tunch <v>  Lab <v>
@@ -112,11 +124,26 @@ DO NOT split colour and clarity into separate fields — combine them in diamond
 Recognised colour values: D, E, F, G, H, I, J, EF, FG, GH, HI, IJ
 Recognised clarity values: FL, IF, VVS, VVS1, VVS2, VS, VS1, VS2, SI, SI1, SI2, SS, I1, I2
 
-DIAMOND RATE SPECIAL RULES (preserved from original prompt):
+DIAMOND RATE SPECIAL RULES:
 - The number immediately following 'DR' or 'Diamond' is Diamond PIECES, NOT rate.
-- Diamond Rate is often a colour grade letter code (e.g. GH, IJ). Do NOT extract numeric counts as diamondRate.
-- SPECIAL CASE: If the colour grade on the tag is 'IJ', set diamondRate value to "20000" (this is a known trade convention for IJ-grade rate).
-- If colourGrade is GH → set diamondRate to the colour grade string "GH" (not a number).
+- Diamond Rate is represented by the colour grade letter code (e.g. GH, IJ, EF) — NOT a number.
+
+*** CRITICAL MANDATORY RULE — IJ DIAMOND RATE ***
+If the colour grade detected is 'IJ' (or 'lJ', 'IJ', '1J' due to OCR), you MUST:
+  1. Set diamondRate = "20000" (fixed trade price for IJ grade — always)
+  2. Set diamondQuality to include "IJ" + the clarity grade (e.g. "IJ VSSI")
+This is non-negotiable. NEVER leave diamondRate empty when colour grade is IJ.
+
+- If colourGrade is GH → set diamondRate = "GH" (string, not number).
+- If colourGrade is EF → set diamondRate = "EF".
+- For all other colour grades, set diamondRate = the colour grade string.
+
+*** CRITICAL MANDATORY RULE — LABOUR ***
+If the word 'Labour' or 'Lab' appears on the tag followed by a number:
+  1. ALWAYS extract that number as the labour value — no exceptions.
+  2. Example: "Labour: 71  14" → labour = "71" (14 here = purity, not labour).
+  3. labour must remain empty ONLY when the word Labour/Lab is completely absent from the tag.
+  4. NEVER leave labour empty if the label is visible.
 
 ==============================================================
 SECTION 4: PURITY NORMALISATION RULES
