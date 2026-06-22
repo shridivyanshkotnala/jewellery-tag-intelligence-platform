@@ -1,29 +1,88 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { RefreshCw } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNav } from '@/components/dashboard/BottomNav';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { MarketCard } from '@/components/dashboard/MarketCard';
+import { StoneRateCard } from '@/components/dashboard/StoneRateCard';
 import { GOLD_MARKET_DATA } from '@/constants/marketData';
 import { Colors } from '@/constants/theme';
+import { useMarketRatesAccess } from '@/hooks/useMarketRatesAccess';
+import type { MarketItem } from '@/types/auth';
+import type { StoneRate } from '@/types/rates';
+import { ApiError } from '@/utils/apiClient';
+import { goldRatesToMarketItems } from '@/utils/rateMappers';
+import {
+  fetchColorstoneRates,
+  fetchDiamondRates,
+  fetchGoldRates,
+} from '@/utils/ratesApi';
 
 const ACCENT_GOLD = '#D4C19C';
 const TAB_INACTIVE = '#F2F2F7';
 
-type MetalTab = 'gold' | 'silver';
+type MarketTab = 'gold' | 'diamond' | 'colorstone';
 
 export default function DashboardScreen() {
-  const [activeTab, setActiveTab] = useState<MetalTab>('gold');
+  const router = useRouter();
+  const { canEditMarketRates } = useMarketRatesAccess();
+  const [activeTab, setActiveTab] = useState<MarketTab>('gold');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [goldItems, setGoldItems] = useState<MarketItem[]>(GOLD_MARKET_DATA);
+  const [diamondRates, setDiamondRates] = useState<StoneRate[]>([]);
+  const [colorstoneRates, setColorstoneRates] = useState<StoneRate[]>([]);
+  const [mcxLiveRate, setMcxLiveRate] = useState<number | null>(null);
   const today = new Date();
   const dayLabel = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const dateNum = today.getDate();
 
+  const loadMarketData = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    try {
+      const [gold, diamond, colorstone] = await Promise.all([
+        fetchGoldRates(),
+        fetchDiamondRates(),
+        fetchColorstoneRates(),
+      ]);
+      setMcxLiveRate(gold.mcxLiveRate);
+      setGoldItems(goldRatesToMarketItems(gold.mcxLiveRate, gold.rates));
+      setDiamondRates(diamond);
+      setColorstoneRates(colorstone);
+    } catch (error) {
+      if (showLoader) {
+        const message =
+          error instanceof ApiError
+            ? error.message
+            : 'Failed to load market rates. Showing last known values.';
+        Alert.alert('Market Data', message);
+      }
+    } finally {
+      if (showLoader) setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadMarketData();
+    }, [loadMarketData]),
+  );
+
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    void loadMarketData(false);
   };
 
   return (
@@ -46,24 +105,21 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.filterRow}>
-          <View style={styles.tabPill}>
-            <Pressable
-              onPress={() => setActiveTab('gold')}
-              style={[styles.tabBtn, activeTab === 'gold' && styles.tabBtnActive]}
-            >
-              <Text style={[styles.tabText, activeTab === 'gold' && styles.tabTextActive]}>
-                Gold
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setActiveTab('silver')}
-              style={[styles.tabBtn, activeTab === 'silver' && styles.tabBtnActive]}
-            >
-              <Text style={[styles.tabText, activeTab === 'silver' && styles.tabTextActive]}>
-                Silver
-              </Text>
-            </Pressable>
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
+            <View style={styles.tabPill}>
+              {(['gold', 'diamond', 'colorstone'] as MarketTab[]).map((tab) => (
+                <Pressable
+                  key={tab}
+                  onPress={() => setActiveTab(tab)}
+                  style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
+                >
+                  <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                    {tab === 'colorstone' ? 'Colorstone' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
 
           <Pressable onPress={handleRefresh} hitSlop={8} style={styles.refreshBtn}>
             <RefreshCw
@@ -74,12 +130,43 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
+        {canEditMarketRates ? (
+          <Pressable
+            onPress={() => router.push('/dashboard/market-rates' as Href)}
+            style={styles.editRatesLink}
+          >
+            <Text style={styles.editRatesText}>Edit Market Rates</Text>
+          </Pressable>
+        ) : null}
+
+        {mcxLiveRate != null && activeTab === 'gold' ? (
+          <Text style={styles.mcxHint}>MCX Live: ₹ {mcxLiveRate.toLocaleString('en-IN')}</Text>
+        ) : null}
+
         <View style={styles.cardsWrap}>
-          {activeTab === 'gold' ? (
-            GOLD_MARKET_DATA.map((item) => <MarketCard key={item.id} item={item} />)
+          {loading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="large" color={Colors.primaryNav} />
+            </View>
+          ) : activeTab === 'gold' ? (
+            goldItems.map((item) => <MarketCard key={item.id} item={item} />)
+          ) : activeTab === 'diamond' ? (
+            diamondRates.length > 0 ? (
+              diamondRates.map((rate) => (
+                <StoneRateCard key={rate.id ?? `${rate.color}-${rate.clarity}`} rate={rate} />
+              ))
+            ) : (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyText}>No diamond rates available yet</Text>
+              </View>
+            )
+          ) : colorstoneRates.length > 0 ? (
+            colorstoneRates.map((rate) => (
+              <StoneRateCard key={rate.id ?? `${rate.color}-${rate.clarity}`} rate={rate} />
+            ))
           ) : (
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>Silver market data coming soon</Text>
+              <Text style={styles.emptyText}>No colorstone rates available yet</Text>
             </View>
           )}
         </View>
@@ -141,6 +228,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 20,
   },
+  tabScroll: {
+    flex: 1,
+  },
   tabPill: {
     flexDirection: 'row',
     backgroundColor: TAB_INACTIVE,
@@ -148,7 +238,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   tabBtn: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
@@ -164,12 +254,31 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   refreshBtn: {
-    marginLeft: 'auto',
+    marginLeft: 12,
     padding: 8,
+  },
+  editRatesLink: {
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  editRatesText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.primaryNav,
+  },
+  mcxHint: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    fontSize: 12,
+    color: Colors.textMuted,
   },
   cardsWrap: {
     paddingHorizontal: 20,
     marginTop: 16,
+  },
+  loadingWrap: {
+    paddingVertical: 40,
+    alignItems: 'center',
   },
   emptyWrap: {
     alignItems: 'center',

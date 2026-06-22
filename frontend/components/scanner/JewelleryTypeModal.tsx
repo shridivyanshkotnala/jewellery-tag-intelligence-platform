@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useScannerStore } from '@/store/scannerStore';
 import type { JewelleryType } from '@/types/scanner';
 
-const SCAN_JEWELLERY_TYPES: JewelleryType[] = ['Gold', 'Silver', 'Diamond'];
+const SCAN_JEWELLERY_TYPES: JewelleryType[] = ['Gold', 'Diamond'];
 
 interface JewelleryTypeModalProps {
   onStartScan: (type: JewelleryType) => void;

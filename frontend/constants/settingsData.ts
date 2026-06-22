@@ -8,6 +8,7 @@ import {
   LogOut,
   MoreHorizontal,
   Sigma,
+  TrendingUp,
   Type,
   UserPlus,
 } from 'lucide-react-native';
@@ -41,6 +42,13 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
     subtitle: 'Control the visibility of Home Screen Matrices',
     icon: LayoutGrid,
     route: '/dashboard/dashboard-matrices',
+  },
+  {
+    id: 'market-rates',
+    title: 'Market Rates Control',
+    subtitle: 'Manage Gold, Diamond and Colorstone rates',
+    icon: TrendingUp,
+    route: '/dashboard/market-rates',
   },
   {
     id: 'inventory',

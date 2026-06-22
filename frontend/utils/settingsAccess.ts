@@ -37,6 +37,10 @@ export function canAccessSettingsItem(
     return true;
   }
 
+  if (itemId === 'market-rates') {
+    return permissions?.edit_market_prices === true;
+  }
+
   if (OWNER_ONLY_SETTINGS_IDS.has(itemId)) {
     return false;
   }
