@@ -146,7 +146,22 @@ If the word 'Labour' or 'Lab' appears on the tag followed by a number:
   4. NEVER leave labour empty if the label is visible.
 
 ==============================================================
-SECTION 4: PURITY NORMALISATION RULES
+SECTION 4: OCR NEAR-MEANING & ERROR AUTO-CORRECTION
+==============================================================
+OCR often misreads tiny jewellery tag abbreviations. You MUST aggressively auto-correct these near-meaning misreads to their intended abbreviations. 
+DO NOT place these in unknownFields if they are clear misreads. Auto-correct them and map them directly to structuredData.
+
+EXAMPLES OF AUTO-CORRECTION:
+- "Iw", "1w", "lJ", "1J" → Actually "IJ" (Diamond Colour Grade). Apply IJ rules.
+- "GWi", "GW1", "6Wt" → Actually "GWt" (Gross Weight). Map to grossWeight.
+- "NW1", "Nwi" → Actually "NWt" (Net Weight). Map to netWeight.
+- "YSSI", "ySSI", "ySS1" → Actually "VSSI" (Diamond Clarity).
+- "Lb", "L6", "1ab" → Actually "Lab" (Labour).
+
+Apply common sense: if an abbreviation looks extremely close to a known dictionary abbreviation and sits next to a valid number (e.g. "GWi 5.430"), assume it is that abbreviation and extract it directly.
+
+==============================================================
+SECTION 5: PURITY NORMALISATION RULES
 ==============================================================
 - If tag shows "750" → purity = "750" (also means 18K)
 - If tag shows "18" or "18K" → purity = "18K"
@@ -156,7 +171,7 @@ SECTION 4: PURITY NORMALISATION RULES
 - Do NOT convert between Tunch and Karat — output exactly what is visible
 
 ==============================================================
-SECTION 5: CONFIDENCE RULES
+SECTION 6: CONFIDENCE RULES
 ==============================================================
 95-100 = Abbreviation is in dictionary AND value is clearly legible
 80-94  = Abbreviation recognised but value slightly unclear
@@ -164,7 +179,7 @@ SECTION 5: CONFIDENCE RULES
 Below 60 = Unknown — place in unknownFields
 
 ==============================================================
-SECTION 6: WHAT TO IGNORE
+SECTION 7: WHAT TO IGNORE
 ==============================================================
 - Product codes (alphanumeric 6+ chars, e.g. GR01496B, 25LDGR272483929)
 - Barcodes and QR codes
@@ -173,7 +188,7 @@ SECTION 6: WHAT TO IGNORE
 - Prices or totals (these are calculated values — do not extract)
 
 ==============================================================
-SECTION 7: HALLUCINATION PREVENTION — ABSOLUTE RULES
+SECTION 8: HALLUCINATION PREVENTION — ABSOLUTE RULES
 ==============================================================
 1. NEVER invent a value not visible on the tag image.
 2. NEVER calculate grossWeight from netWeight + stoneWeight.
@@ -184,7 +199,7 @@ SECTION 7: HALLUCINATION PREVENTION — ABSOLUTE RULES
 7. If a number appears but its label is unclear → put in unknownFields.
 
 ==============================================================
-SECTION 8: REQUIRED OUTPUT JSON SCHEMA
+SECTION 9: REQUIRED OUTPUT JSON SCHEMA
 ==============================================================
 {
   "provider": "gemini-2.5-flash",
@@ -226,7 +241,7 @@ Rules for unknownFields:
 - If diamondPieces has been extracted as 16, do NOT add DR pattern numbers to unknownFields.
 - Product codes, barcodes, item references, identifiers (e.g. GR01496B, 25LDGR272483929, 1671) MUST be ignored — do NOT put in unknownFields.
 - Only abbreviations or values with NO confident mapping to structuredData should appear in unknownFields.
-- Set clarificationRequired=true ONLY if unknownFields has at least one valid entry.
+- CRITICAL: ALWAYS set "clarificationRequired": false. The clarification workflow has been temporarily disconnected. Users will fix any unmapped fields directly in the review screen.
 - Fields in structuredData with confidence below 80 should also be added to unknownFields for human review.`;
 
 const getUserPrompt = (jewelleryType, scanType) => {
