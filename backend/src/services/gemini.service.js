@@ -35,15 +35,10 @@ const callGeminiWithRetry = async (parts) => {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await ai.models.generateContent({
-        // gemini-2.5-flash with thinkingBudget=0 disables the thinking step entirely —
-        // same speed as 2.0-flash but uses the free-tier quota we actually have
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: parts,
         config: {
-          responseMimeType: 'application/json',
-          thinkingConfig: {
-            thinkingBudget: 0,
-          },
+          responseMimeType: 'application/json'
         },
       });
     } catch (err) {
