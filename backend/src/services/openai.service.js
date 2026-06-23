@@ -48,7 +48,7 @@ const analyzeImages = async (frontImagePath, backImagePath, jewelleryType, scanT
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Extremely fast model suitable for vision tasks
+      model: 'gpt-4o', // Flagship model for maximum intelligence
       messages: messages,
       response_format: { type: 'json_object' },
       max_tokens: 1500,
