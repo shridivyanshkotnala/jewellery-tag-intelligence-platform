@@ -1,3 +1,5 @@
+import type { LabourChargeUnit } from '@/constants/labour';
+
 export type JewelleryType = 'Diamond' | 'Gold';
 
 export type ApiJewelleryType = 'DIAMOND' | 'GOLD';
@@ -119,7 +121,9 @@ export interface ScanItemData {
   colorstoneClarity: string;
   colorstoneQuality: string;
   colorstoneRate: string;
-  labour: string;
+  labourPurityPercent: string;
+  labourChargeAmount: string;
+  labourChargeUnit: LabourChargeUnit;
   diamondAmount: string;
 }
 

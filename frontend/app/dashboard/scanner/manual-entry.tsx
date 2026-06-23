@@ -7,6 +7,7 @@ import { ColorstoneSection } from '@/components/scanner/ColorstoneSection';
 import { DiamondSection } from '@/components/scanner/DiamondSection';
 import { FormInput } from '@/components/scanner/FormInput';
 import { FormSection } from '@/components/scanner/FormSection';
+import { getLaborValuesFromScanData, LaborSection } from '@/components/scanner/LaborSection';
 import { JewelleryTypeSelector } from '@/components/scanner/JewelleryTypeSelector';
 import { PrimaryGreenButton } from '@/components/scanner/PrimaryGreenButton';
 import { ScanScreenWrapper } from '@/components/scanner/ScanScreenWrapper';
@@ -16,6 +17,7 @@ import { ToastNotification } from '@/components/scanner/ToastNotification';
 import { useScannerStore } from '@/store/scannerStore';
 import type { ScanItemData } from '@/types/scanner';
 import { parseScannerTag } from '@/utils/scannerTagParser';
+import { validateLabour } from '@/utils/labourUtils';
 
 export default function ManualEntryScreen() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function ManualEntryScreen() {
   const [parsedTag, setParsedTag] = useState(parseScannerTag(''));
   const [diamondRateError, setDiamondRateError] = useState(false);
   const [colorstoneRateError, setColorstoneRateError] = useState(false);
+  const [showLabourValidation, setShowLabourValidation] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '' });
 
   const handleScannerInput = useCallback(
@@ -49,7 +52,16 @@ export default function ManualEntryScreen() {
   );
 
   const hasRateError = diamondRateError || colorstoneRateError;
+  const labourError = validateLabour(scanData);
   const canContinue = !hasRateError;
+
+  const handleContinue = () => {
+    if (labourError) {
+      setShowLabourValidation(true);
+      return;
+    }
+    router.push('/dashboard/scanner/formula-flow');
+  };
 
   const handleDiamondChange = (values: Partial<ScanItemData>) => {
     updateScanData(values);
@@ -61,7 +73,7 @@ export default function ManualEntryScreen() {
       footer={
         <PrimaryGreenButton
           title="Continue to Formula"
-          onPress={() => router.push('/dashboard/scanner/formula-flow')}
+          onPress={handleContinue}
           disabled={!canContinue}
         />
       }
@@ -93,7 +105,7 @@ export default function ManualEntryScreen() {
         </View>
       </FormSection>
 
-      <FormSection title="Item Classification">
+      <FormSection title="Weight & Purity">
         <View className="flex-row flex-wrap justify-between">
           <View className="w-[48%]">
             <FormInput
@@ -166,6 +178,13 @@ export default function ManualEntryScreen() {
           })
         }
         onRateErrorChange={setColorstoneRateError}
+      />
+
+      <LaborSection
+        layout="form"
+        values={getLaborValuesFromScanData(scanData)}
+        onChange={(values) => updateScanData(values)}
+        showValidationError={showLabourValidation || Boolean(labourError)}
       />
 
       {hasRateError ? (

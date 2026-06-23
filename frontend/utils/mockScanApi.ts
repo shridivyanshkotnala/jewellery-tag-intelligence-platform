@@ -54,7 +54,7 @@ export const DEMO_STRUCTURED_DATA: StructuredScanData = {
   diamondPieces: MOCK_REVIEW_RESULTS.diamondPieces,
   diamondRate: MOCK_REVIEW_RESULTS.diamondRate,
   diamondQuality: MOCK_REVIEW_RESULTS.diamondQuality,
-  labour: MOCK_REVIEW_RESULTS.labour,
+  labour: '5465',
 };
 
 function defaultSession(

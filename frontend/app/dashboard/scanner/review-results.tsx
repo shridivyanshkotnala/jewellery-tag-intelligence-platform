@@ -20,6 +20,7 @@ import type { ScanItemData } from '@/types/scanner';
 import { ApiError } from '@/utils/apiClient';
 import { getReview, submitReview } from '@/utils/scanApi';
 import { scanItemToStructuredData, structuredDataToScanItem } from '@/utils/scanMappers';
+import { validateLabour } from '@/utils/labourUtils';
 
 const SCANNER_BG =
   'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80';
@@ -69,7 +70,9 @@ export default function ReviewResultsScreen() {
           colorstoneClarity: MOCK_REVIEW_RESULTS.colorstoneClarity,
           colorstoneQuality: MOCK_REVIEW_RESULTS.colorstoneQuality,
           colorstoneRate: MOCK_REVIEW_RESULTS.colorstoneRate,
-          labour: MOCK_REVIEW_RESULTS.labour,
+          labourPurityPercent: MOCK_REVIEW_RESULTS.labourPurityPercent,
+          labourChargeAmount: MOCK_REVIEW_RESULTS.labourChargeAmount,
+          labourChargeUnit: MOCK_REVIEW_RESULTS.labourChargeUnit,
         });
         return;
       }
@@ -95,6 +98,14 @@ export default function ReviewResultsScreen() {
     );
   };
 
+  const handleLaborChange = (values: Partial<ScanItemData>) => {
+    const updated = { ...useScannerStore.getState().scanData, ...values };
+    updateScanData(values);
+    setStructuredData(
+      scanItemToStructuredData(updated, useScannerStore.getState().structuredData),
+    );
+  };
+
   const handleReScan = () => {
     setScanSide('front');
     router.push('/dashboard/scanner/barcode' as Href);
@@ -102,6 +113,7 @@ export default function ReviewResultsScreen() {
 
   const handleConfirm = async () => {
     if (!scanId) return;
+    if (validateLabour(scanData)) return;
 
     const payload = scanItemToStructuredData(scanData, structuredData);
     setSubmitting(true);
@@ -144,6 +156,7 @@ export default function ReviewResultsScreen() {
                   scanData={scanData}
                   jewelleryType={selectedType}
                   onFieldChange={handleFieldChange}
+                  onLaborChange={handleLaborChange}
                   onReScan={handleReScan}
                   onConfirm={handleConfirm}
                   confirming={submitting}

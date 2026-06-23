@@ -12,6 +12,7 @@ import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
 import { MOCK_SCAN_RESULT } from '@/constants/scannerData';
 import { isDemoScanMode } from '@/constants/scanMode';
 import { useScannerStore } from '@/store/scannerStore';
+import { formatLabourDisplay } from '@/utils/labourUtils';
 
 function formatCurrency(value: string | number | undefined, fallback = '0'): string {
   const numeric = Number(String(value ?? fallback).replace(/[^\d.]/g, ''));
@@ -33,7 +34,8 @@ export default function ScanResultsScreen() {
   const diamondQuality = scanData.diamondQuality || demoResult?.stoneType.quality || '—';
   const diamondWeight = scanData.diamondWeight || demoResult?.stoneType.weight || '—';
   const diamondAmount = scanData.diamondAmount || demoResult?.stoneType.amount || '—';
-  const labour = scanData.labour || demoResult?.costSummary.labour || '—';
+  const labour =
+    formatLabourDisplay(scanData) || demoResult?.costSummary.labour || '—';
   const netPrice = demoResult?.netPrice;
   const wastage = demoResult?.costSummary.wastage || '—';
   const otherCharges = demoResult?.costSummary.otherCharges || '—';

@@ -6,8 +6,10 @@ import type {
   ConfirmedMapping,
   StructuredScanData,
 } from '@/types/scanner';
+import { DEFAULT_LABOUR_CHARGE_UNIT } from '@/constants/labour';
 import { buildQuality } from '@/utils/qualityUtils';
 import { getClarificationFieldLabel } from '@/utils/clarificationFields';
+import { parseLabourFromApi, serializeLabourForApi } from '@/utils/labourUtils';
 
 const JEWELLERY_TYPE_TO_API: Record<JewelleryType, ApiJewelleryType> = {
   Diamond: 'DIAMOND',
@@ -54,7 +56,6 @@ const SCAN_ITEM_TO_API: Partial<Record<keyof ScanItemData, string>> = {
   colorstoneClarity: 'colorstoneClarity',
   colorstoneRate: 'colorstoneRate',
   colorstoneQuality: 'colorstoneQuality',
-  labour: 'labour',
 };
 
 const API_TO_SCAN_ITEM: Record<string, keyof ScanItemData> = {
@@ -73,7 +74,6 @@ const API_TO_SCAN_ITEM: Record<string, keyof ScanItemData> = {
   colorstoneClarity: 'colorstoneClarity',
   colorstoneRate: 'colorstoneRate',
   colorstoneQuality: 'colorstoneQuality',
-  labour: 'labour',
 };
 
 export function toApiJewelleryType(type: JewelleryType): ApiJewelleryType {
@@ -98,12 +98,23 @@ export function structuredDataToScanItem(data: StructuredScanData): Partial<Scan
   for (const scanKey of Object.values(API_TO_SCAN_ITEM)) {
     result[scanKey] = '';
   }
+  result.labourPurityPercent = '';
+  result.labourChargeAmount = '';
+  result.labourChargeUnit = DEFAULT_LABOUR_CHARGE_UNIT;
 
   for (const [apiKey, value] of Object.entries(data)) {
+    if (apiKey === 'labour') continue;
     const scanKey = API_TO_SCAN_ITEM[apiKey];
     if (scanKey && value != null && String(value).trim() !== '') {
       result[scanKey] = String(value);
     }
+  }
+
+  if (data.labour != null && String(data.labour).trim() !== '') {
+    const parsed = parseLabourFromApi(String(data.labour));
+    result.labourPurityPercent = parsed.labourPurityPercent;
+    result.labourChargeAmount = parsed.labourChargeAmount;
+    result.labourChargeUnit = parsed.labourChargeUnit;
   }
 
   if (result.diamondColor || result.diamondClarity) {
@@ -134,6 +145,12 @@ export function scanItemToStructuredData(
       result[apiKey] = value;
     }
   }
+
+  const labourValue = serializeLabourForApi(scanData);
+  if (labourValue) {
+    result.labour = labourValue;
+  }
+
   return result;
 }
 

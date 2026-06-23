@@ -1,14 +1,14 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { Pencil } from 'lucide-react-native';
 
 import { ColorstoneSection } from '@/components/scanner/ColorstoneSection';
 import { DiamondSection } from '@/components/scanner/DiamondSection';
-import { ScannerInput } from '@/components/scanner/ScannerInput';
-import { ScannerPreview } from '@/components/scanner/ScannerPreview';
+import { FormSection } from '@/components/scanner/FormSection';
+import { getLaborValuesFromScanData, LaborSection } from '@/components/scanner/LaborSection';
 import { Colors } from '@/constants/theme';
 import type { ScanItemData } from '@/types/scanner';
-import { parseScannerTag } from '@/utils/scannerTagParser';
+import { validateLabour } from '@/utils/labourUtils';
 
 interface ReviewFieldRowProps {
   label: string;
@@ -58,6 +58,7 @@ interface ReviewScannedResultsModalProps {
   scanData: ScanItemData;
   jewelleryType: 'Gold' | 'Diamond';
   onFieldChange: (field: keyof ScanItemData, value: string) => void;
+  onLaborChange: (values: Partial<ScanItemData>) => void;
   onReScan: () => void;
   onConfirm: () => void;
   confirming?: boolean;
@@ -67,66 +68,68 @@ export function ReviewScannedResultsModal({
   scanData,
   jewelleryType,
   onFieldChange,
+  onLaborChange,
   onReScan,
   onConfirm,
   confirming = false,
 }: ReviewScannedResultsModalProps) {
-  const [scannerInput, setScannerInput] = useState('');
-  const [parsedTag, setParsedTag] = useState(parseScannerTag(''));
   const [diamondRateError, setDiamondRateError] = useState(false);
   const [colorstoneRateError, setColorstoneRateError] = useState(false);
-
-  const handleScannerInput = useCallback(
-    (text: string) => {
-      setScannerInput(text);
-      const parsed = parseScannerTag(text);
-      setParsedTag(parsed);
-
-      if (!parsed) return;
-
-      if (parsed.stoneType === 'diamond') {
-        onFieldChange('diamondWeight', parsed.weight);
-        onFieldChange('diamondRate', parsed.rate);
-      } else {
-        onFieldChange('colorstoneWeight', parsed.weight);
-        onFieldChange('colorstoneRate', parsed.rate);
-      }
-    },
-    [onFieldChange],
-  );
+  const [showLabourValidation, setShowLabourValidation] = useState(false);
 
   const hasRateError = diamondRateError || colorstoneRateError;
+  const labourError = validateLabour(scanData);
   const canConfirm = Boolean(scanData.grossWt.trim()) && !hasRateError;
+
+  const handleConfirm = () => {
+    if (labourError) {
+      setShowLabourValidation(true);
+      return;
+    }
+    onConfirm();
+  };
 
   return (
     <View className="rounded-[20px] bg-white px-5 py-6 shadow-lg">
       <Text className="mb-5 text-lg font-bold text-text-primary">Review Scanned Results</Text>
 
-      <ScannerInput value={scannerInput} onChangeText={handleScannerInput} />
-      <ScannerPreview parsed={parsedTag} rawInput={scannerInput} />
+      <FormSection title="Weight & Purity">
+        <ReviewFieldRow
+          label="Gross Wt."
+          value={scanData.grossWt}
+          onChangeText={(value) => onFieldChange('grossWt', value)}
+          placeholder="Enter Missing Value"
+          required
+          missing={!scanData.grossWt}
+        />
+        <ReviewFieldRow
+          label="Net Weight"
+          value={scanData.netWt}
+          onChangeText={(value) => onFieldChange('netWt', value)}
+        />
+        <ReviewFieldRow
+          label="Tunch (Purity)"
+          value={scanData.tunch}
+          onChangeText={(value) => onFieldChange('tunch', value)}
+        />
+      </FormSection>
 
-      <ReviewFieldRow
-        label="Gross Wt."
-        value={scanData.grossWt}
-        onChangeText={(value) => onFieldChange('grossWt', value)}
-        placeholder="Enter Missing Value"
-        required
-        missing={!scanData.grossWt}
-      />
-      <ReviewFieldRow
-        label="Net Weight"
-        value={scanData.netWt}
-        onChangeText={(value) => onFieldChange('netWt', value)}
-      />
-      <ReviewFieldRow
-        label="Tunch (Purity)"
-        value={scanData.tunch}
-        onChangeText={(value) => onFieldChange('tunch', value)}
-      />
-      <ReviewFieldRow
-        label="Labour"
-        value={scanData.labour}
-        onChangeText={(value) => onFieldChange('labour', value)}
+      <ColorstoneSection
+        values={{
+          weight: scanData.colorstoneWeight,
+          color: scanData.colorstoneColor,
+          clarity: scanData.colorstoneClarity,
+          quality: scanData.colorstoneQuality,
+          rate: scanData.colorstoneRate,
+        }}
+        onChange={(values) => {
+          if (values.weight !== undefined) onFieldChange('colorstoneWeight', values.weight);
+          if (values.color !== undefined) onFieldChange('colorstoneColor', values.color);
+          if (values.clarity !== undefined) onFieldChange('colorstoneClarity', values.clarity);
+          if (values.quality !== undefined) onFieldChange('colorstoneQuality', values.quality);
+          if (values.rate !== undefined) onFieldChange('colorstoneRate', values.rate);
+        }}
+        onRateErrorChange={setColorstoneRateError}
       />
 
       {jewelleryType === 'Diamond' ? (
@@ -149,22 +152,10 @@ export function ReviewScannedResultsModal({
         />
       ) : null}
 
-      <ColorstoneSection
-        values={{
-          weight: scanData.colorstoneWeight,
-          color: scanData.colorstoneColor,
-          clarity: scanData.colorstoneClarity,
-          quality: scanData.colorstoneQuality,
-          rate: scanData.colorstoneRate,
-        }}
-        onChange={(values) => {
-          if (values.weight !== undefined) onFieldChange('colorstoneWeight', values.weight);
-          if (values.color !== undefined) onFieldChange('colorstoneColor', values.color);
-          if (values.clarity !== undefined) onFieldChange('colorstoneClarity', values.clarity);
-          if (values.quality !== undefined) onFieldChange('colorstoneQuality', values.quality);
-          if (values.rate !== undefined) onFieldChange('colorstoneRate', values.rate);
-        }}
-        onRateErrorChange={setColorstoneRateError}
+      <LaborSection
+        values={getLaborValuesFromScanData(scanData)}
+        onChange={(values) => onLaborChange(values)}
+        showValidationError={showLabourValidation || Boolean(labourError)}
       />
 
       <View className="mt-4 flex-row gap-3">
@@ -175,7 +166,7 @@ export function ReviewScannedResultsModal({
           <Text className="text-sm font-semibold text-text-secondary">ReScan</Text>
         </Pressable>
         <Pressable
-          onPress={onConfirm}
+          onPress={handleConfirm}
           disabled={confirming || !canConfirm}
           className="flex-1 items-center rounded-button bg-primary py-3.5 active:opacity-90 disabled:opacity-60"
         >

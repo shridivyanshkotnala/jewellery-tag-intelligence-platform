@@ -9,6 +9,7 @@ import type {
   ScanItemData,
   ScanResultData,
 } from '@/types/scanner';
+import { DEFAULT_LABOUR_CHARGE_UNIT } from '@/constants/labour';
 
 export const JEWELLERY_TYPES = ['Gold', 'Diamond'] as const;
 
@@ -30,7 +31,9 @@ export const DEFAULT_SCAN_ITEM: ScanItemData = {
   colorstoneClarity: '',
   colorstoneQuality: '',
   colorstoneRate: '',
-  labour: '',
+  labourPurityPercent: '',
+  labourChargeAmount: '',
+  labourChargeUnit: DEFAULT_LABOUR_CHARGE_UNIT,
   diamondAmount: '11,400',
 };
 
@@ -248,5 +251,7 @@ export const MOCK_REVIEW_RESULTS = {
   colorstoneClarity: '',
   colorstoneQuality: '',
   colorstoneRate: '',
-  labour: '5465',
+  labourPurityPercent: '',
+  labourChargeAmount: '5465',
+  labourChargeUnit: DEFAULT_LABOUR_CHARGE_UNIT,
 };
