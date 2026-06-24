@@ -1,4 +1,6 @@
-import type { GoldIncreaseByType } from '@/types/rates';
+import type { GoldIncreaseByType, GoldRate } from '@/types/rates';
+
+export type ScannerCalculationUse = 'rtgs' | 'cash' | 'mcx';
 
 export function formatKaratLabel(carat: string): string {
   return carat.replace(/Kt/gi, ' KT').replace(/\s+/g, ' ').trim().toUpperCase();
@@ -59,4 +61,42 @@ export function validateIncreaseAmount(amount: number): string | null {
     return 'Increase amount must be 0 or greater.';
   }
   return null;
+}
+
+export function formatTaxChange(change: number): string {
+  if (!change) return '+ 0';
+  const sign = change > 0 ? '+' : '-';
+  return `${sign} ${Math.abs(change).toLocaleString('en-IN')}`;
+}
+
+export function deriveActiveBaseRate(
+  scannerCalculationUse: ScannerCalculationUse,
+  mcxLiveRate: number,
+  rtgsFinalRate: number,
+  cashFinalRate: number,
+): number {
+  switch (scannerCalculationUse) {
+    case 'rtgs':
+      return rtgsFinalRate;
+    case 'cash':
+      return cashFinalRate;
+    case 'mcx':
+    default:
+      return mcxLiveRate;
+  }
+}
+
+export function computeDisplayGoldRates(
+  rates: GoldRate[],
+  activeBaseRate: number,
+): GoldRate[] {
+  return rates.map((rate) => ({
+    ...rate,
+    finalRate: computeFinalGoldRate(
+      activeBaseRate,
+      rate.purity,
+      rate.increaseByAmount ?? 0,
+      rate.increaseByType ?? 'FLAT',
+    ),
+  }));
 }

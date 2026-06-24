@@ -15,6 +15,14 @@ import { X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  GoldTaxChangeEditModal,
+  GoldTaxSettingsModal,
+  GoldTaxSettingsRow,
+  ScannerCalculationPicker,
+  type ScannerCalculationUse,
+  type TaxChangeTarget,
+} from '@/components/dashboard/market-rates/GoldTaxSettings';
+import {
   GoldEditModalFields,
   GoldIncreaseModalFields,
   GoldRatesTable,
@@ -34,6 +42,8 @@ import { ApiError } from '@/utils/apiClient';
 import {
   applyGoldIncrease,
   calculateBaseGoldRate,
+  computeDisplayGoldRates,
+  deriveActiveBaseRate,
   flatIncreaseForFinalRate,
   formatKaratLabel,
   validateFinalRateValue,
@@ -110,7 +120,26 @@ export default function MarketRatesScreen() {
   const [increaseType, setIncreaseType] = useState<GoldIncreaseByType>('PERCENTAGE');
   const [increaseError, setIncreaseError] = useState<string | null>(null);
 
+  const [rtgsChange, setRtgsChange] = useState(0);
+  const [cashChange, setCashChange] = useState(0);
+  const [scannerCalculationUse, setScannerCalculationUse] = useState<ScannerCalculationUse>('rtgs');
+  const [taxSettingsVisible, setTaxSettingsVisible] = useState(false);
+  const [editingTaxTarget, setEditingTaxTarget] = useState<TaxChangeTarget | null>(null);
+
   const sortedGoldRates = useMemo(() => sortGoldRates(goldRates), [goldRates]);
+
+  const rtgsFinalRate = mcxLiveRate + rtgsChange;
+  const cashFinalRate = mcxLiveRate + cashChange;
+
+  const activeBaseRate = useMemo(
+    () => deriveActiveBaseRate(scannerCalculationUse, mcxLiveRate, rtgsFinalRate, cashFinalRate),
+    [scannerCalculationUse, mcxLiveRate, rtgsFinalRate, cashFinalRate],
+  );
+
+  const displayGoldRates = useMemo(
+    () => computeDisplayGoldRates(sortedGoldRates, activeBaseRate),
+    [sortedGoldRates, activeBaseRate],
+  );
 
   const showToast = (message: string, type: ToastType = 'info') => {
     setToast({ visible: true, message, type });
@@ -163,8 +192,8 @@ export default function MarketRatesScreen() {
     const purity = Number(value);
     const purityErr = validatePurityValue(purity);
     setEditPurityError(purityErr);
-    if (!purityErr && mcxLiveRate > 0) {
-      const recalculated = calculateBaseGoldRate(mcxLiveRate, purity);
+    if (!purityErr && activeBaseRate > 0) {
+      const recalculated = calculateBaseGoldRate(activeBaseRate, purity);
       setEditFinalRate(String(recalculated));
       setEditFinalRateError(null);
     }
@@ -186,7 +215,7 @@ export default function MarketRatesScreen() {
     setEditFinalRateError(finalRateErr);
     if (purityErr || finalRateErr) return;
 
-    const baseRate = calculateBaseGoldRate(mcxLiveRate, purity);
+    const baseRate = calculateBaseGoldRate(activeBaseRate, purity);
     const increaseByAmount = flatIncreaseForFinalRate(baseRate, finalRate);
     const increaseByType: GoldIncreaseByType = 'FLAT';
 
@@ -244,11 +273,24 @@ export default function MarketRatesScreen() {
   const increasePreview =
     increasingGold && increaseAmount
       ? applyGoldIncrease(
-          calculateBaseGoldRate(mcxLiveRate, increasingGold.purity),
+          calculateBaseGoldRate(activeBaseRate, increasingGold.purity),
           Number(increaseAmount) || 0,
           increaseType,
         )
       : null;
+
+  const openTaxChangeEdit = (target: TaxChangeTarget) => {
+    setEditingTaxTarget(target);
+  };
+
+  const handleApplyTaxChange = (change: number) => {
+    if (editingTaxTarget === 'rtgs') {
+      setRtgsChange(change);
+    } else if (editingTaxTarget === 'cash') {
+      setCashChange(change);
+    }
+    setEditingTaxTarget(null);
+  };
 
   return (
     <SafeAreaView style={screenStyles.safeArea} edges={['top']}>
@@ -280,10 +322,15 @@ export default function MarketRatesScreen() {
         ) : activeTab === 'gold' ? (
           <View style={screenStyles.screenSection}>
             <McxLiveBanner mcxLiveRate={mcxLiveRate} />
+            <GoldTaxSettingsRow onPress={() => setTaxSettingsVisible(true)} />
+            <ScannerCalculationPicker
+              value={scannerCalculationUse}
+              onChange={setScannerCalculationUse}
+            />
             <Text style={styles.sectionTitle}>Gold Karat Rates</Text>
-            {sortedGoldRates.length > 0 ? (
+            {displayGoldRates.length > 0 ? (
               <GoldRatesTable
-                rates={sortedGoldRates}
+                rates={displayGoldRates}
                 onEdit={openGoldEdit}
                 onIncreaseBy={openGoldIncrease}
               />
@@ -374,7 +421,11 @@ export default function MarketRatesScreen() {
               Increase {increasingGold ? formatKaratLabel(increasingGold.carat) : ''} Rate
             </Text>
             <GoldIncreaseModalFields
-              currentFinalRate={increasingGold?.finalRate ?? 0}
+              currentFinalRate={
+                increasingGold
+                  ? computeDisplayGoldRates([increasingGold], activeBaseRate)[0]?.finalRate ?? 0
+                  : 0
+              }
               increaseAmount={increaseAmount}
               increaseType={increaseType}
               increaseError={increaseError}
@@ -406,6 +457,26 @@ export default function MarketRatesScreen() {
           </View>
         </View>
       </Modal>
+
+      <GoldTaxSettingsModal
+        visible={taxSettingsVisible}
+        mcxLiveRate={mcxLiveRate}
+        rtgsChange={rtgsChange}
+        cashChange={cashChange}
+        rtgsFinalRate={rtgsFinalRate}
+        cashFinalRate={cashFinalRate}
+        onClose={() => setTaxSettingsVisible(false)}
+        onEditRtgs={() => openTaxChangeEdit('rtgs')}
+        onEditCash={() => openTaxChangeEdit('cash')}
+      />
+
+      <GoldTaxChangeEditModal
+        visible={editingTaxTarget !== null}
+        target={editingTaxTarget}
+        currentChange={editingTaxTarget === 'cash' ? cashChange : rtgsChange}
+        onClose={() => setEditingTaxTarget(null)}
+        onApply={handleApplyTaxChange}
+      />
     </SafeAreaView>
   );
 }
