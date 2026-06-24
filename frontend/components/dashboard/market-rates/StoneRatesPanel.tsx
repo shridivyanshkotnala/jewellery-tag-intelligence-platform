@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Pencil, Trash2 } from 'lucide-react-native';
 
 import { DeleteStoneRateModal } from '@/components/dashboard/market-rates/DeleteStoneRateModal';
 import { StoneRateFormModal } from '@/components/dashboard/market-rates/StoneRateFormModal';
 import type { ToastType } from '@/components/scanner/ToastNotification';
+import {
+  deleteColorstoneRate,
+  deleteDiamondRate,
+  fetchColorstoneRates,
+  fetchDiamondRates,
+  upsertColorstoneRate,
+  upsertDiamondRate,
+} from '@/utils/ratesApi';
 import type { StoneRateKind } from '@/constants/stoneRateOptions';
 import { screenStyles } from '@/constants/screenLayout';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -111,6 +119,23 @@ export function StoneRatesPanel({ stoneType, onToast }: StoneRatesPanelProps) {
     onToast?.(message, type);
   };
 
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const data =
+          stoneType === 'diamond' ? await fetchDiamondRates() : await fetchColorstoneRates();
+        if (active) setRates(data);
+      } catch (err) {
+        if (active) notify('Failed to load rates', 'error');
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [stoneType]);
+
   const openAdd = () => {
     setIsNew(true);
     setEditingRate(null);
@@ -135,7 +160,7 @@ export function StoneRatesPanel({ stoneType, onToast }: StoneRatesPanelProps) {
     setFormErrors({});
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const errors = validateStoneRateForm(color, clarity, rateValue);
     if (errors) {
       setFormErrors(errors);
@@ -146,40 +171,52 @@ export function StoneRatesPanel({ stoneType, onToast }: StoneRatesPanelProps) {
     const trimmedClarity = clarity.trim();
     const rate = Number(rateValue);
 
-    if (
-      findDuplicateStoneRate(rates, trimmedColor, trimmedClarity, editingRate?.id)
-    ) {
+    if (findDuplicateStoneRate(rates, trimmedColor, trimmedClarity, editingRate?.id)) {
       notify('A rate with the same color and clarity already exists.', 'error');
       return;
     }
 
     setSaving(true);
-    const nextRate: StoneRate = {
-      id: editingRate?.id ?? createLocalStoneRateId(),
-      color: trimmedColor,
-      clarity: trimmedClarity,
-      rate,
-    };
+    try {
+      const payload = { color: trimmedColor, clarity: trimmedClarity, rate };
+      const savedRate =
+        stoneType === 'diamond'
+          ? await upsertDiamondRate(payload)
+          : await upsertColorstoneRate(payload);
 
-    setRates((prev) => {
-      if (editingRate) {
-        return prev.map((item) => (item.id === editingRate.id ? nextRate : item));
-      }
-      return [...prev, nextRate];
-    });
+      setRates((prev) => {
+        if (editingRate) {
+          return prev.map((item) => (item.id === editingRate.id ? savedRate : item));
+        }
+        return [...prev, savedRate];
+      });
 
-    closeForm();
-    notify(`${title} rate ${editingRate ? 'updated' : 'added'}`, 'success');
-    setSaving(false);
+      closeForm();
+      notify(`${title} rate ${editingRate ? 'updated' : 'added'}`, 'success');
+    } catch (err) {
+      notify(`Failed to save ${title.toLowerCase()} rate`, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingRate) return;
     setSaving(true);
-    setRates((prev) => prev.filter((item) => item.id !== deletingRate.id));
-    notify(`${title} rate deleted`, 'success');
-    setDeletingRate(null);
-    setSaving(false);
+    try {
+      if (stoneType === 'diamond') {
+        await deleteDiamondRate(deletingRate.id);
+      } else {
+        await deleteColorstoneRate(deletingRate.id);
+      }
+      setRates((prev) => prev.filter((item) => item.id !== deletingRate.id));
+      notify(`${title} rate deleted`, 'success');
+      setDeletingRate(null);
+    } catch (err) {
+      notify(`Failed to delete ${title.toLowerCase()} rate`, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
