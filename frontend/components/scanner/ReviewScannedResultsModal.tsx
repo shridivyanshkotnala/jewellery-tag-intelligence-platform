@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
-import { Pencil } from 'lucide-react-native';
+import { Check, ChevronDown, Pencil } from 'lucide-react-native';
 
 import { ColorstoneSection } from '@/components/scanner/ColorstoneSection';
 import { DiamondSection } from '@/components/scanner/DiamondSection';
@@ -8,7 +8,14 @@ import { FieldLabel } from '@/components/scanner/FieldLabel';
 import { FormSection } from '@/components/scanner/FormSection';
 import { getLaborValuesFromScanData, LaborSection } from '@/components/scanner/LaborSection';
 import { Colors } from '@/constants/theme';
+import { useFormulaStore } from '@/store/formulaStore';
 import type { ScanItemData } from '@/types/scanner';
+import {
+  applyFormula2KaratConstraint,
+  computeNetWeightFallback,
+  isKaratWhitelisted,
+  resolveScannedKarat,
+} from '@/utils/formulaUtils';
 import { validateLabour } from '@/utils/labourUtils';
 
 interface ReviewFieldRowProps {
@@ -52,6 +59,65 @@ function ReviewFieldRow({
   );
 }
 
+interface KaratDropdownRowProps {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (karat: string) => void;
+  required?: boolean;
+  missing?: boolean;
+}
+
+function KaratDropdownRow({
+  label,
+  value,
+  options,
+  onChange,
+  required = false,
+  missing = false,
+}: KaratDropdownRowProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <View className="mb-3">
+      <FieldLabel label={label} required={required} />
+      <Pressable
+        onPress={() => setOpen((prev) => !prev)}
+        className={`min-h-11 flex-row items-center justify-between rounded-input border bg-surface-input px-3.5 py-2 ${
+          missing ? 'border-danger-text' : 'border-border'
+        }`}
+      >
+        <Text className={`flex-1 text-sm ${value ? 'text-text-primary' : 'text-text-muted'}`}>
+          {value || 'Select karat'}
+        </Text>
+        <ChevronDown size={18} color="#757575" />
+      </Pressable>
+      {open ? (
+        <View className="mt-1 overflow-hidden rounded-input border border-border bg-white">
+          {options.map((option) => (
+            <Pressable
+              key={option}
+              onPress={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className={`px-3.5 py-3 ${value === option ? 'bg-[#E8F0EC]' : ''}`}
+            >
+              <Text
+                className={`text-sm ${
+                  value === option ? 'font-bold text-primary' : 'text-text-primary'
+                }`}
+              >
+                {option}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 interface ReviewScannedResultsModalProps {
   scanData: ScanItemData;
   jewelleryType: 'Gold' | 'Diamond';
@@ -71,13 +137,73 @@ export function ReviewScannedResultsModal({
   onConfirm,
   confirming = false,
 }: ReviewScannedResultsModalProps) {
+  const activeFormula = useFormulaStore((s) => s.activeFormula);
+  const formula2Rules = useFormulaStore((s) => s.formula2Rules);
+
   const [diamondRateError, setDiamondRateError] = useState(false);
   const [colorstoneRateError, setColorstoneRateError] = useState(false);
   const [showLabourValidation, setShowLabourValidation] = useState(false);
+  const [karatDropdownMode, setKaratDropdownMode] = useState(false);
+  const [useNetWtFormula, setUseNetWtFormula] = useState(false);
 
   const hasRateError = diamondRateError || colorstoneRateError;
   const labourError = validateLabour(scanData);
   const canConfirm = Boolean(scanData.grossWt.trim()) && !hasRateError;
+
+  useEffect(() => {
+    if (activeFormula !== 'F2') {
+      setKaratDropdownMode(false);
+      return;
+    }
+
+    const scannedKarat = resolveScannedKarat(scanData.karat, scanData.tunch);
+    const { karat, requiresDropdown } = applyFormula2KaratConstraint(scannedKarat, formula2Rules);
+    setKaratDropdownMode(requiresDropdown);
+
+    if (requiresDropdown) {
+      if (scanData.karat) {
+        onFieldChange('karat', '');
+      }
+      return;
+    }
+
+    if (karat && karat !== scanData.karat) {
+      onFieldChange('karat', karat);
+    }
+  }, [
+    activeFormula,
+    formula2Rules,
+    scanData.karat,
+    scanData.tunch,
+    onFieldChange,
+  ]);
+
+  useEffect(() => {
+    if (!useNetWtFormula) return;
+    const computed = computeNetWeightFallback(
+      scanData.grossWt,
+      scanData.diamondWeight,
+      scanData.colorstoneWeight,
+    );
+    if (computed !== scanData.netWt) {
+      onFieldChange('netWt', computed);
+    }
+  }, [
+    useNetWtFormula,
+    scanData.grossWt,
+    scanData.diamondWeight,
+    scanData.colorstoneWeight,
+    scanData.netWt,
+    onFieldChange,
+  ]);
+
+  const handleNetWtFormulaToggle = () => {
+    const next = !useNetWtFormula;
+    setUseNetWtFormula(next);
+    if (!next) {
+      onFieldChange('netWt', '');
+    }
+  };
 
   const handleConfirm = () => {
     if (labourError) {
@@ -86,6 +212,13 @@ export function ReviewScannedResultsModal({
     }
     onConfirm();
   };
+
+  const showKaratDropdown =
+    activeFormula === 'F2' &&
+    (karatDropdownMode || !isKaratWhitelisted(scanData.karat, formula2Rules));
+
+  const resolvedKarat =
+    scanData.karat || resolveScannedKarat(scanData.karat, scanData.tunch);
 
   return (
     <View className="rounded-[20px] bg-white px-screen py-5 shadow-lg">
@@ -104,7 +237,39 @@ export function ReviewScannedResultsModal({
           label="Net Weight"
           value={scanData.netWt}
           onChangeText={(value) => onFieldChange('netWt', value)}
+          editable={!useNetWtFormula}
         />
+        <Pressable
+          onPress={handleNetWtFormulaToggle}
+          className="mb-3 flex-row items-start gap-2.5 rounded-input border border-border bg-surface-muted px-3 py-3"
+        >
+          <View
+            className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
+              useNetWtFormula ? 'border-primary bg-primary' : 'border-border bg-white'
+            }`}
+          >
+            {useNetWtFormula ? <Check size={12} color="#FFFFFF" /> : null}
+          </View>
+          <Text className="flex-1 text-xs leading-5 text-text-secondary">
+            Use Net Wt = gross wt - 0.2 x (dia wt + colorstone wt)
+          </Text>
+        </Pressable>
+        {showKaratDropdown ? (
+          <KaratDropdownRow
+            label="Karat"
+            value={scanData.karat}
+            options={formula2Rules}
+            onChange={(value) => onFieldChange('karat', value)}
+            required
+            missing={!scanData.karat}
+          />
+        ) : (
+          <ReviewFieldRow
+            label="Karat"
+            value={resolvedKarat}
+            onChangeText={(value) => onFieldChange('karat', value)}
+          />
+        )}
         <ReviewFieldRow
           label="Tunch (Purity)"
           value={scanData.tunch}

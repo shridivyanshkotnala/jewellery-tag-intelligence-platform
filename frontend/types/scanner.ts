@@ -110,6 +110,7 @@ export interface ScanItemData {
   netWt: string;
   pureWt: string;
   tunch: string;
+  karat: string;
   diamondWeight: string;
   diamondColor: string;
   diamondClarity: string;

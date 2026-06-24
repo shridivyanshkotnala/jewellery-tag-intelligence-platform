@@ -20,6 +20,7 @@ export const DEFAULT_SCAN_ITEM: ScanItemData = {
   netWt: '38.200',
   pureWt: '34.991',
   tunch: '91.6',
+  karat: '22K',
   diamondWeight: '1.20',
   diamondColor: 'IJ',
   diamondClarity: 'VSSI',

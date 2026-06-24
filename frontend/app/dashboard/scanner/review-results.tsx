@@ -15,15 +15,43 @@ import { ReviewScannedResultsModal } from '@/components/scanner/ReviewScannedRes
 import { ScreenBackHeader } from '@/components/scanner/ScreenBackHeader';
 import { MOCK_REVIEW_RESULTS } from '@/constants/scannerData';
 import { isDemoScanMode } from '@/constants/scanMode';
+import { useFormulaStore } from '@/store/formulaStore';
 import { useScannerStore } from '@/store/scannerStore';
 import type { ScanItemData } from '@/types/scanner';
 import { ApiError } from '@/utils/apiClient';
+import {
+  applyFormula2KaratConstraint,
+  resolveScannedKarat,
+} from '@/utils/formulaUtils';
 import { getReview, submitReview } from '@/utils/scanApi';
 import { scanItemToStructuredData, structuredDataToScanItem } from '@/utils/scanMappers';
 import { validateLabour } from '@/utils/labourUtils';
 
 const SCANNER_BG =
   'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80';
+
+function applyClientFormulaRules(data: ScanItemData): ScanItemData {
+  const { activeFormula, formula2Rules } = useFormulaStore.getState();
+  const withKarat = {
+    ...data,
+    karat: data.karat || resolveScannedKarat(data.karat, data.tunch),
+  };
+
+  if (activeFormula !== 'F2') {
+    return withKarat;
+  }
+
+  const scannedKarat = resolveScannedKarat(withKarat.karat, withKarat.tunch);
+  const { karat, requiresDropdown } = applyFormula2KaratConstraint(
+    scannedKarat,
+    formula2Rules,
+  );
+
+  return {
+    ...withKarat,
+    karat: requiresDropdown ? '' : karat,
+  };
+}
 
 export default function ReviewResultsScreen() {
   const router = useRouter();
@@ -47,33 +75,38 @@ export default function ReviewResultsScreen() {
     try {
       const data = await getReview(scanId);
       setStructuredData(data.structuredData);
-      updateScanData(structuredDataToScanItem(data.structuredData));
+      updateScanData(applyClientFormulaRules(structuredDataToScanItem(data.structuredData)));
     } catch (error) {
       const existing = useScannerStore.getState().structuredData;
       if (Object.keys(existing).length > 0) {
-        updateScanData(structuredDataToScanItem(existing));
+        updateScanData(applyClientFormulaRules(structuredDataToScanItem(existing)));
         return;
       }
       if (isDemoScanMode()) {
-        updateScanData({
-          grossWt: MOCK_REVIEW_RESULTS.grossWt || '42.500',
-          netWt: MOCK_REVIEW_RESULTS.netWt,
-          tunch: MOCK_REVIEW_RESULTS.tunch,
-          diamondWeight: MOCK_REVIEW_RESULTS.diamondWeight,
-          diamondColor: MOCK_REVIEW_RESULTS.diamondColor,
-          diamondClarity: MOCK_REVIEW_RESULTS.diamondClarity,
-          diamondPieces: MOCK_REVIEW_RESULTS.diamondPieces,
-          diamondRate: MOCK_REVIEW_RESULTS.diamondRate,
-          diamondQuality: MOCK_REVIEW_RESULTS.diamondQuality,
-          colorstoneWeight: MOCK_REVIEW_RESULTS.colorstoneWeight,
-          colorstoneColor: MOCK_REVIEW_RESULTS.colorstoneColor,
-          colorstoneClarity: MOCK_REVIEW_RESULTS.colorstoneClarity,
-          colorstoneQuality: MOCK_REVIEW_RESULTS.colorstoneQuality,
-          colorstoneRate: MOCK_REVIEW_RESULTS.colorstoneRate,
-          labourPurityPercent: MOCK_REVIEW_RESULTS.labourPurityPercent,
-          labourChargeAmount: MOCK_REVIEW_RESULTS.labourChargeAmount,
-          labourChargeUnit: MOCK_REVIEW_RESULTS.labourChargeUnit,
-        });
+        const base = useScannerStore.getState().scanData;
+        updateScanData(
+          applyClientFormulaRules({
+            ...base,
+            grossWt: MOCK_REVIEW_RESULTS.grossWt || '42.500',
+            netWt: MOCK_REVIEW_RESULTS.netWt,
+            tunch: MOCK_REVIEW_RESULTS.tunch,
+            karat: resolveScannedKarat('', MOCK_REVIEW_RESULTS.tunch),
+            diamondWeight: MOCK_REVIEW_RESULTS.diamondWeight,
+            diamondColor: MOCK_REVIEW_RESULTS.diamondColor,
+            diamondClarity: MOCK_REVIEW_RESULTS.diamondClarity,
+            diamondPieces: MOCK_REVIEW_RESULTS.diamondPieces,
+            diamondRate: MOCK_REVIEW_RESULTS.diamondRate,
+            diamondQuality: MOCK_REVIEW_RESULTS.diamondQuality,
+            colorstoneWeight: MOCK_REVIEW_RESULTS.colorstoneWeight,
+            colorstoneColor: MOCK_REVIEW_RESULTS.colorstoneColor,
+            colorstoneClarity: MOCK_REVIEW_RESULTS.colorstoneClarity,
+            colorstoneQuality: MOCK_REVIEW_RESULTS.colorstoneQuality,
+            colorstoneRate: MOCK_REVIEW_RESULTS.colorstoneRate,
+            labourPurityPercent: MOCK_REVIEW_RESULTS.labourPurityPercent,
+            labourChargeAmount: MOCK_REVIEW_RESULTS.labourChargeAmount,
+            labourChargeUnit: MOCK_REVIEW_RESULTS.labourChargeUnit,
+          }),
+        );
         return;
       }
       const message =
@@ -90,21 +123,21 @@ export default function ReviewResultsScreen() {
     loadReview();
   }, [loadReview]);
 
-  const handleFieldChange = (field: keyof ScanItemData, value: string) => {
+  const handleFieldChange = useCallback((field: keyof ScanItemData, value: string) => {
     const updated = { ...useScannerStore.getState().scanData, [field]: value };
     updateScanData({ [field]: value });
     setStructuredData(
       scanItemToStructuredData(updated, useScannerStore.getState().structuredData),
     );
-  };
+  }, [updateScanData, setStructuredData]);
 
-  const handleLaborChange = (values: Partial<ScanItemData>) => {
+  const handleLaborChange = useCallback((values: Partial<ScanItemData>) => {
     const updated = { ...useScannerStore.getState().scanData, ...values };
     updateScanData(values);
     setStructuredData(
       scanItemToStructuredData(updated, useScannerStore.getState().structuredData),
     );
-  };
+  }, [updateScanData, setStructuredData]);
 
   const handleReScan = () => {
     setScanSide('front');
