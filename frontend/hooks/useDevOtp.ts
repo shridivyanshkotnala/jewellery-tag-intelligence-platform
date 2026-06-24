@@ -12,7 +12,7 @@ export function useDevOtp(
   const [otp, setOtp] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!__DEV__ || !businessId) {
+    if (!businessId) {
       setOtp(null);
       return;
     }
