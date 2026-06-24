@@ -16,9 +16,13 @@ router.get('/diamond', rateController.getDiamondRates);
 router.post('/diamond', requirePermission('manageRates'), rateController.addOrUpdateDiamondRate);
 router.delete('/diamond/:id', requirePermission('manageRates'), rateController.deleteDiamondRate);
 
-// Colorstone
+// Colourstone
 router.get('/colorstone', rateController.getColorstoneRates);
 router.post('/colorstone', requirePermission('manageRates'), rateController.addOrUpdateColorstoneRate);
 router.delete('/colorstone/:id', requirePermission('manageRates'), rateController.deleteColorstoneRate);
+
+// Labour
+router.get('/labour', rateController.getLabourRate);
+router.post('/labour', requirePermission('manageRates'), rateController.upsertLabourRate);
 
 module.exports = router;

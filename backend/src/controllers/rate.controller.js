@@ -1,6 +1,7 @@
 const GoldRate = require('../models/goldRate.model');
 const DiamondRate = require('../models/diamondRate.model');
 const ColorstoneRate = require('../models/colorstoneRate.model');
+const LabourRate = require('../models/labourRate.model');
 const { calculateGoldFinalRate } = require('../services/rateCalculation.service');
 const mcxService = require('../services/mcx.service');
 
@@ -169,6 +170,51 @@ const deleteColorstoneRate = async (req, res) => {
   }
 };
 
+// === LABOUR RATES ===
+
+const getLabourRate = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const labourRate = await LabourRate.findOne({ businessId });
+    // Returns null if no labour rate exists yet, which matches the "Empty by default" spec.
+    res.status(200).json({ success: true, data: labourRate });
+  } catch (error) {
+    console.error('Get Labour Rate Error:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+const upsertLabourRate = async (req, res) => {
+  try {
+    const { chargeType, value } = req.body;
+    const businessId = req.user.businessId;
+
+    if (!chargeType || value == null) {
+      return res.status(400).json({ success: false, message: 'chargeType and value are required' });
+    }
+
+    if (!['AMOUNT', 'PERCENTAGE'].includes(chargeType)) {
+      return res.status(400).json({ success: false, message: 'Invalid chargeType' });
+    }
+
+    // Strict validation: if percentage, must be between 0 and 100
+    if (chargeType === 'PERCENTAGE' && (value < 0 || value > 100)) {
+      return res.status(400).json({ success: false, message: 'Percentage must be between 0 and 100' });
+    }
+
+    const labourRate = await LabourRate.findOneAndUpdate(
+      { businessId },
+      { chargeType, value },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({ success: true, data: labourRate });
+  } catch (error) {
+    console.error('Upsert Labour Rate Error:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 module.exports = {
   updateGoldRate,
   getGoldRates,
@@ -177,5 +223,7 @@ module.exports = {
   deleteDiamondRate,
   addOrUpdateColorstoneRate,
   getColorstoneRates,
-  deleteColorstoneRate
+  deleteColorstoneRate,
+  getLabourRate,
+  upsertLabourRate
 };
