@@ -5,9 +5,12 @@ let memoryServer;
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(config.mongodb.uri, {
-      retryWrites: false
-    });
+    let uri = config.mongodb.uri;
+    if (!uri.includes('retryWrites=false')) {
+      uri += uri.includes('?') ? '&retryWrites=false' : '?retryWrites=false';
+    }
+    
+    const conn = await mongoose.connect(uri);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
