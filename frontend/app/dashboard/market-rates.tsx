@@ -21,6 +21,7 @@ import {
   McxLiveBanner,
 } from '@/components/dashboard/market-rates/GoldRatesTable';
 import { StoneRatesPanel } from '@/components/dashboard/market-rates/StoneRatesPanel';
+import { LabourRatesPanel } from '@/components/dashboard/market-rates/LabourRatesPanel';
 import { BottomNav } from '@/components/dashboard/BottomNav';
 import { ToastNotification, type ToastType } from '@/components/scanner/ToastNotification';
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
@@ -296,13 +297,7 @@ export default function MarketRatesScreen() {
           </View>
         ) : activeTab === 'labour' ? (
           <View style={screenStyles.screenSection}>
-            <View style={screenStyles.emptyCard}>
-              <Text style={screenStyles.emptyTitle}>Labour Charges</Text>
-              <Text style={screenStyles.emptyText}>
-              Labour rate masters will be configured here. Use the scanner Labour section for
-              per-item labour charges until this module is enabled.
-            </Text>
-          </View>
+            <LabourRatesPanel onToast={showToast} />
           </View>
         ) : activeTab === 'diamond' || activeTab === 'colorstone' ? (
           <View style={screenStyles.screenSection}>

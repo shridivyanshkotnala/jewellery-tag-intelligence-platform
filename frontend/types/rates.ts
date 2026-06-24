@@ -49,3 +49,17 @@ export interface StoneRateLookupPayload {
 export interface StoneRateLookupResponse {
   rate: number;
 }
+
+export type LabourChargeType = 'AMOUNT' | 'PERCENTAGE';
+
+export interface LabourRate {
+  id?: string;
+  chargeType: LabourChargeType;
+  value: number;
+  updatedAt?: string;
+}
+
+export interface UpsertLabourRatePayload {
+  chargeType: LabourChargeType;
+  value: number;
+}

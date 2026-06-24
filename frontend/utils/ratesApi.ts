@@ -1,10 +1,12 @@
 import type {
   GoldRate,
   GoldRatesResponse,
+  LabourRate,
   StoneRate,
   StoneRateLookupPayload,
   StoneRateLookupResponse,
   UpdateGoldRatePayload,
+  UpsertLabourRatePayload,
   UpsertStoneRatePayload,
 } from '@/types/rates';
 import { apiRequest } from '@/utils/apiClient';
@@ -239,4 +241,54 @@ export async function lookupStoneRate(
   }
 
   throw new RateNotFoundError(quality);
+}
+
+function normalizeLabourRate(raw: Record<string, unknown>): LabourRate | null {
+  const chargeType = readString(raw.chargeType ?? raw.charge_type);
+  const value = readNumber(raw.value);
+
+  if ((chargeType !== 'AMOUNT' && chargeType !== 'PERCENTAGE') || value == null) {
+    return null;
+  }
+
+  return {
+    id: readString(raw.id ?? raw._id),
+    chargeType,
+    value,
+    updatedAt: readString(raw.updatedAt ?? raw.updated_at),
+  };
+}
+
+export async function fetchLabourRate(): Promise<LabourRate | null> {
+  const response = await apiRequest<ApiEnvelope>('/rates/labour', { method: 'GET' });
+
+  if (response.data === null || response.data === undefined) {
+    return null;
+  }
+
+  const unwrapped = unwrapApiData(response);
+  if (!unwrapped || typeof unwrapped !== 'object') {
+    return null;
+  }
+
+  return normalizeLabourRate(unwrapped as Record<string, unknown>);
+}
+
+export async function upsertLabourRate(payload: UpsertLabourRatePayload): Promise<LabourRate> {
+  const response = await apiRequest<ApiEnvelope>('/rates/labour', {
+    method: 'POST',
+    body: payload as unknown as Record<string, unknown>,
+  });
+
+  const unwrapped = unwrapApiData(response);
+  const normalized = normalizeLabourRate(unwrapped);
+  if (normalized) return normalized;
+
+  const nested = unwrapped.rate ?? unwrapped.data;
+  if (nested && typeof nested === 'object') {
+    const fromNested = normalizeLabourRate(nested as Record<string, unknown>);
+    if (fromNested) return fromNested;
+  }
+
+  throw new Error('Invalid labour rate response from server');
 }
