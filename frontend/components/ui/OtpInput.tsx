@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { ErrorText } from './ErrorText';
@@ -21,38 +21,59 @@ export function OtpInput({ value, onChange, error }: OtpInputProps) {
     onChange(cleaned);
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <View>
-      <Pressable onPress={() => inputRef.current?.focus()} className="flex-row gap-2">
-        {digits.map((digit, index) => {
-          const isEmpty = !digit.trim();
-          const isActive = index === value.length && value.length < OTP_LENGTH;
-          return (
-            <View
-              key={index}
-              className={`h-[48px] flex-1 items-center justify-center rounded-lg border ${
-                isEmpty && !isActive
-                  ? 'border-transparent bg-surface-card'
-                  : 'border-text-primary bg-white'
-              }`}
-            >
-              <Text className="text-lg font-semibold text-text-primary">
-                {digit.trim() ? digit : ''}
-              </Text>
-            </View>
-          );
-        })}
-      </Pressable>
-      <TextInput
-        ref={inputRef}
-        value={value}
-        onChangeText={handleChange}
-        keyboardType="number-pad"
-        maxLength={OTP_LENGTH}
-        className="absolute h-0 w-0 opacity-0"
-        autoFocus
-      />
+      <View style={styles.otpInputWrapper}>
+        <View className="flex-row gap-2" pointerEvents="none">
+          {digits.map((digit, index) => {
+            const isEmpty = !digit.trim();
+            const isActive = index === value.length && value.length < OTP_LENGTH;
+            return (
+              <View
+                key={index}
+                className={`h-[48px] flex-1 items-center justify-center rounded-lg border ${
+                  isEmpty && !isActive
+                    ? 'border-transparent bg-surface-card'
+                    : 'border-text-primary bg-white'
+                }`}
+              >
+                <Text className="text-lg font-semibold text-text-primary">
+                  {digit.trim() ? digit : ''}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+        <TextInput
+          ref={inputRef}
+          value={value}
+          onChangeText={handleChange}
+          keyboardType="number-pad"
+          maxLength={OTP_LENGTH}
+          style={styles.otpOverlayInput}
+          caretHidden
+          autoFocus
+          autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
+          textContentType="oneTimeCode"
+          importantForAutofill="yes"
+        />
+      </View>
       <ErrorText message={error} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  otpInputWrapper: {
+    position: 'relative',
+  },
+  otpOverlayInput: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0,
+  },
+});

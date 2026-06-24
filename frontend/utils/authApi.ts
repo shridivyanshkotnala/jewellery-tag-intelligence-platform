@@ -156,6 +156,22 @@ export async function submitBusinessContactDetails(payload: {
   }
 }
 
+export async function fetchDevOtps(
+  businessId: string,
+): Promise<{ phone?: string; email?: string }> {
+  const response = await apiRequest<ApiEnvelope<Record<string, unknown>>>(
+    `/auth/dev/otps/${encodeURIComponent(businessId)}`,
+    { method: 'GET' },
+  );
+  const unwrapped = unwrapEnvelope(response);
+  if (!isSuccessfulResponse(response, unwrapped)) {
+    return {};
+  }
+  const phone = readString(unwrapped, ['phone']);
+  const email = readString(unwrapped, ['email']);
+  return { phone, email };
+}
+
 export async function verifyBusinessPhoneOtp(
   businessId: string,
   otp: string,

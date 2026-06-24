@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,7 +16,9 @@ import { ChevronLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
+import { DevOtpBanner } from '@/components/ui/DevOtpBanner';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { useDevOtp } from '@/hooks/useDevOtp';
 import { useAuthStore } from '@/store/authStore';
 import { submitBusinessContactDetails, verifyBusinessEmailOtp } from '@/utils/authApi';
 import { maskEmail, validateOtp } from '@/utils/validation';
@@ -38,6 +40,8 @@ export default function OtpEmailScreen() {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [devOtpRefresh, setDevOtpRefresh] = useState(0);
+  const devOtp = useDevOtp(businessId, 'email', devOtpRefresh);
 
   const digits = otp.padEnd(OTP_LENGTH, ' ').split('').slice(0, OTP_LENGTH);
 
@@ -45,6 +49,11 @@ export default function OtpEmailScreen() {
     setOtp(text.replace(/\D/g, '').slice(0, OTP_LENGTH));
     setOtpError(null);
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleVerify = async () => {
     const error = validateOtp(otp);
@@ -78,6 +87,7 @@ export default function OtpEmailScreen() {
       await submitBusinessContactDetails({ businessId, phone, email });
       setOtp('');
       setOtpError(null);
+      setDevOtpRefresh((key) => key + 1);
     } catch (error) {
       setOtpError(error instanceof Error ? error.message : 'Failed to resend OTP.');
     } finally {
@@ -120,33 +130,40 @@ export default function OtpEmailScreen() {
                 Enter the verification code we just sent to your Email {maskEmail(email)}.
               </Text>
 
-              <Pressable onPress={() => inputRef.current?.focus()} style={styles.otpRow}>
-                {digits.map((digit, index) => {
-                  const isEmpty = !digit.trim();
-                  const isActive = index === otp.length && otp.length < OTP_LENGTH;
-                  return (
-                    <View
-                      key={index}
-                      style={[
-                        styles.otpBox,
-                        isEmpty && isActive && styles.otpBoxActive,
-                      ]}
-                    >
-                      <Text style={styles.otpDigit}>{digit.trim() ? digit : ''}</Text>
-                    </View>
-                  );
-                })}
-              </Pressable>
+              {devOtp ? <DevOtpBanner label="Dev email OTP" otp={devOtp} /> : null}
 
-              <TextInput
-                ref={inputRef}
-                value={otp}
-                onChangeText={handleOtpChange}
-                keyboardType="number-pad"
-                maxLength={OTP_LENGTH}
-                style={styles.hiddenInput}
-                autoFocus
-              />
+              <View style={styles.otpInputWrapper}>
+                <View style={styles.otpRow} pointerEvents="none">
+                  {digits.map((digit, index) => {
+                    const isEmpty = !digit.trim();
+                    const isActive = index === otp.length && otp.length < OTP_LENGTH;
+                    return (
+                      <View
+                        key={index}
+                        style={[
+                          styles.otpBox,
+                          isEmpty && isActive && styles.otpBoxActive,
+                        ]}
+                      >
+                        <Text style={styles.otpDigit}>{digit.trim() ? digit : ''}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+                <TextInput
+                  ref={inputRef}
+                  value={otp}
+                  onChangeText={handleOtpChange}
+                  keyboardType="number-pad"
+                  maxLength={OTP_LENGTH}
+                  style={styles.otpOverlayInput}
+                  caretHidden
+                  autoFocus
+                  autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
+                  textContentType="oneTimeCode"
+                  importantForAutofill="yes"
+                />
+              </View>
 
               {otpError ? <Text style={styles.errorText}>{otpError}</Text> : null}
 
@@ -251,10 +268,13 @@ const styles = StyleSheet.create({
     color: Colors.textLabel,
     marginTop: 8,
   },
+  otpInputWrapper: {
+    position: 'relative',
+    marginTop: 24,
+  },
   otpRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24,
     gap: 8,
   },
   otpBox: {
@@ -275,10 +295,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textPrimary,
   },
-  hiddenInput: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
+  otpOverlayInput: {
+    ...StyleSheet.absoluteFillObject,
     opacity: 0,
   },
   errorText: {
