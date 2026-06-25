@@ -210,9 +210,13 @@ const getReviewData = async (scanId) => {
    const structuredData = {};
    const rawStruct = scan.analysisResult?.structuredData || {};
    for (const [k, v] of Object.entries(rawStruct)) {
-     const value = v?.value;
-     if (value != null && String(value).trim() !== '') {
-       structuredData[k] = String(value);
+     if (Array.isArray(v)) {
+       structuredData[k] = v;
+     } else {
+       const value = v?.value;
+       if (value != null && String(value).trim() !== '') {
+         structuredData[k] = String(value);
+       }
      }
    }
 
