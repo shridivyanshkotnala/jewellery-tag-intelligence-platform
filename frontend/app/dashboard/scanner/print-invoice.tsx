@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CheckCircle2, Printer } from 'lucide-react-native';
 
-import { InvoiceReceipt } from '@/components/scanner/InvoiceReceipt';
+import { InvoiceGenerationBilling } from '@/components/scanner/InvoiceGenerationBilling';
 import { PrimaryGreenButton } from '@/components/scanner/PrimaryGreenButton';
 import { ScanScreenWrapper } from '@/components/scanner/ScanScreenWrapper';
-import { MOCK_INVOICE_ITEMS } from '@/constants/scannerData';
+import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
+import { useScannerStore } from '@/store/scannerStore';
+import { resolveInvoiceNumber } from '@/utils/invoiceCalculation';
+import { parseStoneArraysFromStructuredData } from '@/utils/stoneSequenceUtils';
 
 type PrintState = 'preparing' | 'printing' | 'success';
 
@@ -14,20 +17,35 @@ export default function PrintInvoiceScreen() {
   const router = useRouter();
   const [printState, setPrintState] = useState<PrintState>('preparing');
 
+  const scanData = useScannerStore((state) => state.scanData);
+  const structuredData = useScannerStore((state) => state.structuredData);
+  const scanId = useScannerStore((state) => state.scanId);
+
+  const { diamonds, colorstones } = useMemo(
+    () => parseStoneArraysFromStructuredData(structuredData, scanData),
+    [structuredData, scanData],
+  );
+
+  const invoiceNumber = useMemo(
+    () => resolveInvoiceNumber(scanId, scanData.sku),
+    [scanId, scanData.sku],
+  );
+
   useEffect(() => {
     if (printState === 'preparing') {
-      const t = setTimeout(() => setPrintState('printing'), 1200);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setPrintState('printing'), 1200);
+      return () => clearTimeout(timer);
     }
     if (printState === 'printing') {
-      const t = setTimeout(() => setPrintState('success'), 2000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setPrintState('success'), 2000);
+      return () => clearTimeout(timer);
     }
   }, [printState]);
 
   return (
     <ScanScreenWrapper
       title="Print Invoice"
+      className="bg-surface-muted"
       scanButtonVariant="green"
       footer={
         printState === 'success' ? (
@@ -35,6 +53,8 @@ export default function PrintInvoiceScreen() {
         ) : undefined
       }
     >
+      <BackgroundPattern />
+
       {printState === 'preparing' || printState === 'printing' ? (
         <View className="mb-6 items-center rounded-2xl border border-border bg-white py-10">
           <ActivityIndicator size="large" color="#1A332E" />
@@ -53,12 +73,19 @@ export default function PrintInvoiceScreen() {
           <CheckCircle2 size={48} color="#34A853" />
           <Text className="mt-3 text-lg font-bold text-success-text">Invoice Printed</Text>
           <Text className="mt-1 text-sm text-text-secondary">
-            Invoice #PR-2024-002 sent to printer successfully
+            Invoice {invoiceNumber} sent to printer successfully
           </Text>
         </View>
       )}
 
-      <InvoiceReceipt items={MOCK_INVOICE_ITEMS} />
+      <InvoiceGenerationBilling
+        scanData={scanData}
+        structuredData={structuredData}
+        diamonds={diamonds}
+        colorstones={colorstones}
+        scanId={scanId}
+        readOnly
+      />
     </ScanScreenWrapper>
   );
 }
