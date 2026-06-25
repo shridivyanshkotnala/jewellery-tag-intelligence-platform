@@ -128,8 +128,28 @@ export interface ScanItemData {
   diamondAmount: string;
 }
 
+export type StoneKind = 'diamond' | 'colorstone';
+
+export interface StoneEntry {
+  stoneType: StoneKind;
+  weight: string;
+  color: string;
+  clarity: string;
+  quality: string;
+  rate: string;
+  pieces?: string;
+}
+
+export interface SequentialStoneBlock {
+  sequenceIndex: number;
+  displayTitle: string;
+  stoneType: StoneKind;
+  entry: StoneEntry;
+  sourceIndex: number;
+}
+
 export interface ParsedScannerTag {
-  stoneType: 'diamond' | 'colorstone';
+  stoneType: StoneKind;
   shape?: string;
   weight: string;
   rate: string;

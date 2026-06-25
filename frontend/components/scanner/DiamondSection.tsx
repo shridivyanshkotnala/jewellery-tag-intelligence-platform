@@ -18,6 +18,7 @@ export interface DiamondSectionValues {
 }
 
 interface DiamondSectionProps {
+  title?: string;
   values: DiamondSectionValues;
   onChange: (values: Partial<DiamondSectionValues>) => void;
   onRateErrorChange?: (hasError: boolean) => void;
@@ -25,6 +26,7 @@ interface DiamondSectionProps {
 }
 
 export function DiamondSection({
+  title = 'Diamond Details',
   values,
   onChange,
   onRateErrorChange,
@@ -71,7 +73,7 @@ export function DiamondSection({
 
   return (
     <>
-      <FormSection title="Diamond Details">
+      <FormSection title={title}>
         <View className="flex-row flex-wrap justify-between">
           <View className="mb-1 w-[48%]">
             <FormInput

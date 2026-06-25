@@ -17,7 +17,7 @@ import { MOCK_REVIEW_RESULTS } from '@/constants/scannerData';
 import { isDemoScanMode } from '@/constants/scanMode';
 import { useFormulaStore } from '@/store/formulaStore';
 import { useScannerStore } from '@/store/scannerStore';
-import type { ScanItemData } from '@/types/scanner';
+import type { ScanItemData, StoneEntry } from '@/types/scanner';
 import { ApiError } from '@/utils/apiClient';
 import { syncFormulaStoreFromApi } from '@/utils/formulaSettingsApi';
 import {
@@ -26,6 +26,10 @@ import {
 } from '@/utils/formulaUtils';
 import { getReview, submitReview } from '@/utils/scanApi';
 import { scanItemToStructuredData, structuredDataToScanItem } from '@/utils/scanMappers';
+import {
+  applyStoneEntriesToScanData,
+  stoneEntriesToStructuredData,
+} from '@/utils/stoneSequenceUtils';
 import { validateLabour } from '@/utils/labourUtils';
 
 const SCANNER_BG =
@@ -140,6 +144,23 @@ export default function ReviewResultsScreen() {
     );
   }, [updateScanData, setStructuredData]);
 
+  const handleStoneEntriesChange = useCallback(
+    (diamonds: StoneEntry[], colorstones: StoneEntry[]) => {
+      const currentScanData = useScannerStore.getState().scanData;
+      const currentStructuredData = useScannerStore.getState().structuredData;
+      const stoneFields = applyStoneEntriesToScanData(currentScanData, diamonds, colorstones);
+      const updatedScanData = { ...currentScanData, ...stoneFields };
+      const nextStructuredData = stoneEntriesToStructuredData(
+        currentStructuredData,
+        diamonds,
+        colorstones,
+      );
+      updateScanData(stoneFields);
+      setStructuredData(scanItemToStructuredData(updatedScanData, nextStructuredData));
+    },
+    [setStructuredData, updateScanData],
+  );
+
   const handleLaborChange = useCallback((values: Partial<ScanItemData>) => {
     const updated = { ...useScannerStore.getState().scanData, ...values };
     updateScanData(values);
@@ -196,8 +217,10 @@ export default function ReviewResultsScreen() {
               <View className="w-full">
                 <ReviewScannedResultsModal
                   scanData={scanData}
+                  structuredData={structuredData}
                   jewelleryType={selectedType}
                   onFieldChange={handleFieldChange}
+                  onStoneEntriesChange={handleStoneEntriesChange}
                   onLaborChange={handleLaborChange}
                   onReScan={handleReScan}
                   onConfirm={handleConfirm}

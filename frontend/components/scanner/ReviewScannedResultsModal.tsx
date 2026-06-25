@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { Check, ChevronDown, Pencil } from 'lucide-react-native';
 
@@ -9,7 +9,7 @@ import { FormSection } from '@/components/scanner/FormSection';
 import { getLaborValuesFromScanData, LaborSection } from '@/components/scanner/LaborSection';
 import { Colors } from '@/constants/theme';
 import { useFormulaStore } from '@/store/formulaStore';
-import type { ScanItemData } from '@/types/scanner';
+import type { ScanItemData, StoneEntry, StructuredScanData } from '@/types/scanner';
 import {
   applyFormula2KaratConstraint,
   computeNetWeightFallback,
@@ -17,6 +17,13 @@ import {
   resolveScannedKarat,
 } from '@/utils/formulaUtils';
 import { validateLabour } from '@/utils/labourUtils';
+import {
+  buildSequentialStoneBlocks,
+  parseStoneArraysFromStructuredData,
+  resolveStoneEntryArrays,
+  sumStoneWeights,
+  updateStoneEntryAtIndex,
+} from '@/utils/stoneSequenceUtils';
 
 interface ReviewFieldRowProps {
   label: string;
@@ -120,8 +127,10 @@ function KaratDropdownRow({
 
 interface ReviewScannedResultsModalProps {
   scanData: ScanItemData;
+  structuredData: StructuredScanData;
   jewelleryType: 'Gold' | 'Diamond';
   onFieldChange: (field: keyof ScanItemData, value: string) => void;
+  onStoneEntriesChange: (diamonds: StoneEntry[], colorstones: StoneEntry[]) => void;
   onLaborChange: (values: Partial<ScanItemData>) => void;
   onReScan: () => void;
   onConfirm: () => void;
@@ -130,8 +139,10 @@ interface ReviewScannedResultsModalProps {
 
 export function ReviewScannedResultsModal({
   scanData,
+  structuredData,
   jewelleryType,
   onFieldChange,
+  onStoneEntriesChange,
   onLaborChange,
   onReScan,
   onConfirm,
@@ -140,13 +151,40 @@ export function ReviewScannedResultsModal({
   const activeFormula = useFormulaStore((s) => s.activeFormula);
   const formula2Rules = useFormulaStore((s) => s.formula2Rules);
 
-  const [diamondRateError, setDiamondRateError] = useState(false);
-  const [colorstoneRateError, setColorstoneRateError] = useState(false);
+  const parsedStones = useMemo(
+    () => parseStoneArraysFromStructuredData(structuredData, scanData),
+    [structuredData, scanData],
+  );
+
+  const [diamondEntries, setDiamondEntries] = useState<StoneEntry[]>(parsedStones.diamonds);
+  const [colorstoneEntries, setColorstoneEntries] = useState<StoneEntry[]>(
+    parsedStones.colorstones,
+  );
+  const [rateErrors, setRateErrors] = useState<Record<number, boolean>>({});
   const [showLabourValidation, setShowLabourValidation] = useState(false);
   const [karatDropdownMode, setKaratDropdownMode] = useState(false);
   const [useNetWtFormula, setUseNetWtFormula] = useState(false);
 
-  const hasRateError = diamondRateError || colorstoneRateError;
+  const stoneDataKey = `${structuredData.diamonds ?? ''}|${structuredData.colorstones ?? ''}`;
+
+  useEffect(() => {
+    const parsed = parseStoneArraysFromStructuredData(structuredData, scanData);
+    const resolved = resolveStoneEntryArrays(
+      parsed.diamonds,
+      parsed.colorstones,
+      jewelleryType,
+    );
+    setDiamondEntries(resolved.diamonds);
+    setColorstoneEntries(resolved.colorstones);
+    setRateErrors({});
+  }, [stoneDataKey, jewelleryType, structuredData, scanData]);
+
+  const stoneBlocks = useMemo(
+    () => buildSequentialStoneBlocks(diamondEntries, colorstoneEntries, jewelleryType),
+    [diamondEntries, colorstoneEntries, jewelleryType],
+  );
+
+  const hasRateError = Object.values(rateErrors).some(Boolean);
   const labourError = validateLabour(scanData);
   const canConfirm = Boolean(scanData.grossWt.trim()) && !hasRateError;
 
@@ -182,8 +220,8 @@ export function ReviewScannedResultsModal({
     if (!useNetWtFormula) return;
     const computed = computeNetWeightFallback(
       scanData.grossWt,
-      scanData.diamondWeight,
-      scanData.colorstoneWeight,
+      sumStoneWeights(diamondEntries),
+      sumStoneWeights(colorstoneEntries),
     );
     if (computed !== scanData.netWt) {
       onFieldChange('netWt', computed);
@@ -191,11 +229,34 @@ export function ReviewScannedResultsModal({
   }, [
     useNetWtFormula,
     scanData.grossWt,
-    scanData.diamondWeight,
-    scanData.colorstoneWeight,
+    diamondEntries,
+    colorstoneEntries,
     scanData.netWt,
     onFieldChange,
   ]);
+
+  const handleStoneEntryChange = useCallback(
+    (stoneType: 'diamond' | 'colorstone', sourceIndex: number, values: Partial<StoneEntry>) => {
+      if (stoneType === 'diamond') {
+        const nextDiamonds = updateStoneEntryAtIndex(diamondEntries, sourceIndex, values);
+        setDiamondEntries(nextDiamonds);
+        onStoneEntriesChange(nextDiamonds, colorstoneEntries);
+        return;
+      }
+
+      const nextColorstones = updateStoneEntryAtIndex(colorstoneEntries, sourceIndex, values);
+      setColorstoneEntries(nextColorstones);
+      onStoneEntriesChange(diamondEntries, nextColorstones);
+    },
+    [colorstoneEntries, diamondEntries, onStoneEntriesChange],
+  );
+
+  const handleStoneRateErrorChange = useCallback((sequenceIndex: number, hasError: boolean) => {
+    setRateErrors((prev) => {
+      if (prev[sequenceIndex] === hasError) return prev;
+      return { ...prev, [sequenceIndex]: hasError };
+    });
+  }, []);
 
   const handleNetWtFormulaToggle = () => {
     const next = !useNetWtFormula;
@@ -277,43 +338,45 @@ export function ReviewScannedResultsModal({
         />
       </FormSection>
 
-      <ColorstoneSection
-        values={{
-          weight: scanData.colorstoneWeight,
-          color: scanData.colorstoneColor,
-          clarity: scanData.colorstoneClarity,
-          quality: scanData.colorstoneQuality,
-          rate: scanData.colorstoneRate,
-        }}
-        onChange={(values) => {
-          if (values.weight !== undefined) onFieldChange('colorstoneWeight', values.weight);
-          if (values.color !== undefined) onFieldChange('colorstoneColor', values.color);
-          if (values.clarity !== undefined) onFieldChange('colorstoneClarity', values.clarity);
-          if (values.quality !== undefined) onFieldChange('colorstoneQuality', values.quality);
-          if (values.rate !== undefined) onFieldChange('colorstoneRate', values.rate);
-        }}
-        onRateErrorChange={setColorstoneRateError}
-      />
+      {stoneBlocks.map((block) => {
+        const sectionValues = {
+          weight: block.entry.weight,
+          color: block.entry.color,
+          clarity: block.entry.clarity,
+          quality: block.entry.quality,
+          rate: block.entry.rate,
+        };
 
-      {jewelleryType === 'Diamond' ? (
-        <DiamondSection
-          values={{
-            weight: scanData.diamondWeight,
-            color: scanData.diamondColor,
-            clarity: scanData.diamondClarity,
-            quality: scanData.diamondQuality,
-            rate: scanData.diamondRate,
-          }}
-          onChange={(values) => {
-            if (values.weight !== undefined) onFieldChange('diamondWeight', values.weight);
-            if (values.color !== undefined) onFieldChange('diamondColor', values.color);
-            if (values.clarity !== undefined) onFieldChange('diamondClarity', values.clarity);
-            if (values.quality !== undefined) onFieldChange('diamondQuality', values.quality);
-            if (values.rate !== undefined) onFieldChange('diamondRate', values.rate);
-          }}
-          onRateErrorChange={setDiamondRateError}
-        />
-      ) : null}
+        if (block.stoneType === 'diamond') {
+          return (
+            <DiamondSection
+              key={`stone-${block.sequenceIndex}-${block.sourceIndex}`}
+              title={block.displayTitle}
+              values={sectionValues}
+              onChange={(values) =>
+                handleStoneEntryChange('diamond', block.sourceIndex, values)
+              }
+              onRateErrorChange={(hasError) =>
+                handleStoneRateErrorChange(block.sequenceIndex, hasError)
+              }
+            />
+          );
+        }
+
+        return (
+          <ColorstoneSection
+            key={`stone-${block.sequenceIndex}-${block.sourceIndex}`}
+            title={block.displayTitle}
+            values={sectionValues}
+            onChange={(values) =>
+              handleStoneEntryChange('colorstone', block.sourceIndex, values)
+            }
+            onRateErrorChange={(hasError) =>
+              handleStoneRateErrorChange(block.sequenceIndex, hasError)
+            }
+          />
+        );
+      })}
 
       <LaborSection
         values={getLaborValuesFromScanData(scanData)}

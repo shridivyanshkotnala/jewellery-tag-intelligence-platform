@@ -18,6 +18,7 @@ export interface ColorstoneSectionValues {
 }
 
 interface ColorstoneSectionProps {
+  title?: string;
   values: ColorstoneSectionValues;
   onChange: (values: Partial<ColorstoneSectionValues>) => void;
   onRateErrorChange?: (hasError: boolean) => void;
@@ -25,6 +26,7 @@ interface ColorstoneSectionProps {
 }
 
 export function ColorstoneSection({
+  title = 'Colorstone Details',
   values,
   onChange,
   onRateErrorChange,
@@ -71,7 +73,7 @@ export function ColorstoneSection({
 
   return (
     <>
-      <FormSection title="Colorstone Details">
+      <FormSection title={title}>
         <View className="flex-row flex-wrap justify-between">
           <View className="mb-1 w-[48%]">
             <FormInput
