@@ -121,6 +121,7 @@ PATTERN G — Delimited Stone Tag (Backslash separated):
   Example: "CS\\10.82\\500"
   → This is a Colour Stone. coloredStoneWeight=10.82, coloredStoneRate=500.
   NOTE: The backslashes separate the values. Extract the explicit numeric rate into diamondRate or coloredStoneRate.
+  CRITICAL: If there are multiple lines (e.g. two RD lines and two CS lines), you MUST create a SEPARATE object in the "diamonds" or "colorstones" JSON array for EACH line! Do not combine them!
 
 ==============================================================
 SECTION 3: DIAMOND RATE & QUALITY FIELD RULES
@@ -239,6 +240,7 @@ SECTION 9: REQUIRED OUTPUT JSON SCHEMA
     "labourAmount":         { "value": "", "confidence": 0 },
     "diamonds": [
       {
+        "shape": { "value": "", "confidence": 0 },
         "weight": { "value": "", "confidence": 0 },
         "pieces": { "value": "", "confidence": 0 },
         "rate": { "value": "", "confidence": 0 },
@@ -249,6 +251,7 @@ SECTION 9: REQUIRED OUTPUT JSON SCHEMA
     ],
     "colorstones": [
       {
+        "type": { "value": "", "confidence": 0 },
         "weight": { "value": "", "confidence": 0 },
         "pieces": { "value": "", "confidence": 0 },
         "rate": { "value": "", "confidence": 0 },
