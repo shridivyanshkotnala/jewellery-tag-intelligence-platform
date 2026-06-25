@@ -1,22 +1,25 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChevronDown, Plus } from 'lucide-react-native';
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { screenStyles } from '@/constants/screenLayout';
+import type { ActiveFormula } from '@/store/formulaStore';
+import type { Formula2Row } from '@/types/formulaSettings';
+import type { FormulaSettings } from '@/types/formulaSettings';
+import {
+  applyFormulaSettingsToStore,
+  fetchFormulaSettings,
+  formula2RulesToRows,
+  updateFormulaSettings,
+} from '@/utils/formulaSettingsApi';
+
 import {
   getKaratOptionsForAdd,
   getKaratOptionsForEdit,
 } from '@/utils/formulaUtils';
 
 const BUTTON_GREEN = '#1B3022';
-
-export type ActiveFormula = 'F1' | 'F2';
-
-interface Formula2Row {
-  id: number;
-  karat: string;
-}
 
 interface FormulaOptionBlockProps {
   label: string;
@@ -237,16 +240,24 @@ function AddKaratPicker({ options, onSelect, onCancel }: AddKaratPickerProps) {
 interface MasterFormulaConfigProps {
   activeFormula: ActiveFormula;
   onActiveFormulaChange: (formula: ActiveFormula) => void;
+  formula2Rows: Formula2Row[];
+  onSaveRowKarat: (rowId: number, karat: string) => void | Promise<void>;
+  onAddRow: (karat: string) => void | Promise<void>;
+  onDeleteRow: (rowId: number) => void | Promise<void>;
+  disabled?: boolean;
 }
 
 export function MasterFormulaConfig({
   activeFormula,
   onActiveFormulaChange,
+  formula2Rows,
+  onSaveRowKarat,
+  onAddRow,
+  onDeleteRow,
+  disabled = false,
 }: MasterFormulaConfigProps) {
-  const [formula2Rows, setFormula2Rows] = useState<Formula2Row[]>([{ id: 1, karat: '14K' }]);
   const [addingField, setAddingField] = useState(false);
   const [deleteTargetRowId, setDeleteTargetRowId] = useState<number | null>(null);
-  const nextRowId = useRef(2);
 
   const usedKarats = formula2Rows.map((row) => row.karat);
   const addOptions = getKaratOptionsForAdd(usedKarats);
@@ -254,19 +265,13 @@ export function MasterFormulaConfig({
   const showDeleteOnRows = formula2Rows.length > 1;
   const deleteTargetRow = formula2Rows.find((row) => row.id === deleteTargetRowId);
 
-  const handleAddRow = (karat: string) => {
-    setFormula2Rows((prev) => [...prev, { id: nextRowId.current++, karat }]);
+  const handleAddRow = async (karat: string) => {
+    await onAddRow(karat);
     setAddingField(false);
   };
 
-  const handleSaveRowKarat = (rowId: number, karat: string) => {
-    setFormula2Rows((prev) =>
-      prev.map((row) => (row.id === rowId ? { ...row, karat } : row)),
-    );
-  };
-
-  const handleDeleteRow = (rowId: number) => {
-    setFormula2Rows((prev) => prev.filter((row) => row.id !== rowId));
+  const handleDeleteRow = async (rowId: number) => {
+    await onDeleteRow(rowId);
     setDeleteTargetRowId(null);
   };
 
@@ -275,7 +280,7 @@ export function MasterFormulaConfig({
       <FormulaOptionBlock
         label="Formula 1"
         isActive={activeFormula === 'F1'}
-        onSelect={() => onActiveFormulaChange('F1')}
+        onSelect={() => !disabled && onActiveFormulaChange('F1')}
       >
         <Text style={styles.formulaExpression}>
           Gold Amount = MCX Live Rate (24K) x Pure Wt
@@ -285,7 +290,7 @@ export function MasterFormulaConfig({
       <FormulaOptionBlock
         label="Formula 2"
         isActive={activeFormula === 'F2'}
-        onSelect={() => onActiveFormulaChange('F2')}
+        onSelect={() => !disabled && onActiveFormulaChange('F2')}
       >
         <View style={styles.f2Content}>
           {formula2Rows.map((row) => (
@@ -294,8 +299,8 @@ export function MasterFormulaConfig({
               row={row}
               allRows={formula2Rows}
               showDelete={showDeleteOnRows}
-              onSave={(karat) => handleSaveRowKarat(row.id, karat)}
-              onRequestDelete={() => setDeleteTargetRowId(row.id)}
+              onSave={(karat) => onSaveRowKarat(row.id, karat)}
+              onRequestDelete={() => !disabled && setDeleteTargetRowId(row.id)}
             />
           ))}
 
@@ -307,8 +312,8 @@ export function MasterFormulaConfig({
             />
           ) : (
             <Pressable
-              onPress={() => canAddMore && setAddingField(true)}
-              disabled={!canAddMore}
+              onPress={() => !disabled && canAddMore && setAddingField(true)}
+              disabled={disabled || !canAddMore}
               style={[styles.addFieldsBtn, !canAddMore && styles.addFieldsBtnDisabled]}
             >
               <Plus size={16} color={canAddMore ? BUTTON_GREEN : Colors.textMuted} />
@@ -333,16 +338,29 @@ export function MasterFormulaConfig({
 interface FormulaSelectionActionBarProps {
   onApply: () => void;
   onRestore: () => void;
+  disabled?: boolean;
 }
 
-function FormulaSelectionActionBar({ onApply, onRestore }: FormulaSelectionActionBarProps) {
+function FormulaSelectionActionBar({ onApply, onRestore, disabled = false }: FormulaSelectionActionBarProps) {
   return (
     <View style={styles.selectionActionBar}>
-      <Pressable onPress={onRestore} style={styles.restoreBtn}>
+      <Pressable
+        onPress={onRestore}
+        disabled={disabled}
+        style={[styles.restoreBtn, disabled && styles.actionBtnDisabled]}
+      >
         <Text style={styles.restoreBtnText}>Restore</Text>
       </Pressable>
-      <Pressable onPress={onApply} style={styles.applyChangesBtn}>
-        <Text style={styles.applyChangesBtnText}>Apply Changes</Text>
+      <Pressable
+        onPress={onApply}
+        disabled={disabled}
+        style={[styles.applyChangesBtn, disabled && styles.actionBtnDisabled]}
+      >
+        {disabled ? (
+          <ActivityIndicator color={Colors.white} size="small" />
+        ) : (
+          <Text style={styles.applyChangesBtnText}>Apply Changes</Text>
+        )}
       </Pressable>
     </View>
   );
@@ -352,18 +370,136 @@ interface MasterFormulasModuleProps {
   contentContainerStyle?: object;
 }
 
+function applySettingsToState(
+  settings: FormulaSettings,
+  setters: {
+    setActiveFormula: (value: ActiveFormula) => void;
+    setCommittedFormula: (value: ActiveFormula) => void;
+    setFormula2Rows: (rows: Formula2Row[]) => void;
+    setNextRowId: (id: number) => void;
+  },
+) {
+  const { rows, nextRowId } = formula2RulesToRows(settings.formula2Rules);
+  setters.setActiveFormula(settings.activeFormula);
+  setters.setCommittedFormula(settings.activeFormula);
+  setters.setFormula2Rows(rows);
+  setters.setNextRowId(nextRowId);
+  applyFormulaSettingsToStore(settings);
+}
+
 export function MasterFormulasModule({ contentContainerStyle }: MasterFormulasModuleProps) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeFormula, setActiveFormula] = useState<ActiveFormula>('F1');
   const [committedFormula, setCommittedFormula] = useState<ActiveFormula>('F1');
+  const [formula2Rows, setFormula2Rows] = useState<Formula2Row[]>([{ id: 1, karat: '14K' }]);
+  const nextRowIdRef = useRef(2);
+
   const hasPendingFormulaChange = activeFormula !== committedFormula;
 
-  const handleApplyChanges = () => {
-    setCommittedFormula(activeFormula);
+  const loadSettings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const settings = await fetchFormulaSettings();
+      applySettingsToState(settings, {
+        setActiveFormula,
+        setCommittedFormula,
+        setFormula2Rows,
+        setNextRowId: (id) => {
+          nextRowIdRef.current = id;
+        },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load formula settings');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  const persistSettings = useCallback(
+    async (formula: ActiveFormula, rows: Formula2Row[]) => {
+      setSaving(true);
+      setError(null);
+      try {
+        const settings = await updateFormulaSettings({
+          activeFormula: formula,
+          formula2Rules: rows.map((row) => row.karat),
+        });
+        applySettingsToState(settings, {
+          setActiveFormula,
+          setCommittedFormula,
+          setFormula2Rows,
+          setNextRowId: (id) => {
+            nextRowIdRef.current = id;
+          },
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to save formula settings';
+        setError(message);
+        throw err;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [],
+  );
+
+  const handleApplyChanges = async () => {
+    try {
+      await persistSettings(activeFormula, formula2Rows);
+    } catch {
+      // Error state is already set for display.
+    }
   };
 
   const handleRestore = () => {
     setActiveFormula(committedFormula);
   };
+
+  const handleSaveRowKarat = async (rowId: number, karat: string) => {
+    const updatedRows = formula2Rows.map((row) => (row.id === rowId ? { ...row, karat } : row));
+    setFormula2Rows(updatedRows);
+    try {
+      await persistSettings(committedFormula, updatedRows);
+    } catch {
+      await loadSettings();
+    }
+  };
+
+  const handleAddRow = async (karat: string) => {
+    const updatedRows = [...formula2Rows, { id: nextRowIdRef.current++, karat }];
+    setFormula2Rows(updatedRows);
+    try {
+      await persistSettings(committedFormula, updatedRows);
+    } catch {
+      await loadSettings();
+    }
+  };
+
+  const handleDeleteRow = async (rowId: number) => {
+    const updatedRows = formula2Rows.filter((row) => row.id !== rowId);
+    setFormula2Rows(updatedRows);
+    try {
+      await persistSettings(committedFormula, updatedRows);
+    } catch {
+      await loadSettings();
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingState}>
+        <ActivityIndicator size="large" color={BUTTON_GREEN} />
+        <Text style={styles.loadingText}>Loading formula settings...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -372,12 +508,29 @@ export function MasterFormulasModule({ contentContainerStyle }: MasterFormulasMo
       showsVerticalScrollIndicator={false}
     >
       <View style={screenStyles.screenSection}>
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable onPress={() => void loadSettings()} style={styles.retryBtn}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <MasterFormulaConfig
           activeFormula={activeFormula}
           onActiveFormulaChange={setActiveFormula}
+          formula2Rows={formula2Rows}
+          onSaveRowKarat={handleSaveRowKarat}
+          onAddRow={handleAddRow}
+          onDeleteRow={handleDeleteRow}
+          disabled={saving}
         />
         {hasPendingFormulaChange ? (
-          <FormulaSelectionActionBar onApply={handleApplyChanges} onRestore={handleRestore} />
+          <FormulaSelectionActionBar
+            onApply={() => void handleApplyChanges()}
+            onRestore={handleRestore}
+            disabled={saving}
+          />
         ) : null}
       </View>
     </ScrollView>
@@ -423,6 +576,47 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: Colors.white,
+  },
+  actionBtnDisabled: {
+    opacity: 0.7,
+  },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.xxl,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    borderColor: '#F5C6C2',
+    backgroundColor: '#FFF5F5',
+    borderRadius: Radius.input,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#D93025',
+    lineHeight: 18,
+  },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: Radius.button,
+    borderWidth: 1,
+    borderColor: '#F5C6C2',
+    backgroundColor: Colors.white,
+  },
+  retryBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D93025',
   },
   container: { gap: Spacing.lg },
   formulaOptionRow: {

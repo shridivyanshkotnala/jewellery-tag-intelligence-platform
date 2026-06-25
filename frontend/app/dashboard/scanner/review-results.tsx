@@ -19,6 +19,7 @@ import { useFormulaStore } from '@/store/formulaStore';
 import { useScannerStore } from '@/store/scannerStore';
 import type { ScanItemData } from '@/types/scanner';
 import { ApiError } from '@/utils/apiClient';
+import { syncFormulaStoreFromApi } from '@/utils/formulaSettingsApi';
 import {
   applyFormula2KaratConstraint,
   resolveScannedKarat,
@@ -73,6 +74,14 @@ export default function ReviewResultsScreen() {
 
     setLoading(true);
     try {
+      if (!isDemoScanMode()) {
+        try {
+          await syncFormulaStoreFromApi();
+        } catch {
+          // Keep existing store values when formula settings cannot be loaded.
+        }
+      }
+
       const data = await getReview(scanId);
       setStructuredData(data.structuredData);
       updateScanData(applyClientFormulaRules(structuredDataToScanItem(data.structuredData)));
