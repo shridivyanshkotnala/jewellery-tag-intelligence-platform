@@ -222,8 +222,14 @@ export async function lookupStoneRate(
   const trimmedClarity = payload.clarity.trim();
   const quality = `${trimmedColor} ${trimmedClarity}`.trim();
 
-  const rates =
-    payload.type === 'colorstone' ? await fetchColorstoneRates() : await fetchDiamondRates();
+  let rates: StoneRate[] = [];
+  try {
+    rates =
+      payload.type === 'colorstone' ? await fetchColorstoneRates() : await fetchDiamondRates();
+  } catch (error) {
+    console.warn(`Failed to fetch ${payload.type} rates from API:`, error);
+    // Proceed with empty rates so we can still check for local fallbacks
+  }
 
   const match = rates.find(
     (item) =>

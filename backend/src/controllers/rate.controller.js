@@ -125,6 +125,7 @@ const addOrUpdateDiamondRate = async (req, res) => {
 
 const getDiamondRates = async (req, res) => {
   try {
+    console.log('[RATE] GET /rates/diamond hit by user:', req.user?.businessId);
     const businessId = req.user.businessId;
     const rates = await DiamondRate.find({ businessId });
     res.status(200).json({ success: true, data: rates });
