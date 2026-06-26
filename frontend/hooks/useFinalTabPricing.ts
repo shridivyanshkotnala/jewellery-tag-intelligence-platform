@@ -75,16 +75,21 @@ export function useFinalTabPricing({
         if (!isMounted) return;
         
         const stoneBlocks = buildDisplayStoneBlocks(diamonds, colorstones);
-        const stoneRows: StoneAmountRow[] = stoneBlocks.map(block => ({
-            sequenceIndex: block.sequenceIndex,
-            displayTitle: block.displayTitle,
-            stoneType: block.stoneType,
-            rate: `₹${block.entry.rate}/ct`,
-            quality: block.entry.quality || '—',
-            weight: `${block.entry.weight} ct`,
-            amount: block.stoneType === 'diamond' ? res.breakdown.diamondAmount : res.breakdown.colorstoneAmount,
-            amountDisplay: formatIndianCurrency(block.stoneType === 'diamond' ? res.breakdown.diamondAmount : res.breakdown.colorstoneAmount),
-        }));
+        const stoneRows: StoneAmountRow[] = stoneBlocks.map(block => {
+            const wt = parseNumericValue(block.entry.weight) || 0;
+            const rt = parseNumericValue(block.entry.rate) || 0;
+            const rowAmt = wt * rt;
+            return {
+              sequenceIndex: block.sequenceIndex,
+              displayTitle: block.displayTitle,
+              stoneType: block.stoneType,
+              rate: `₹${block.entry.rate}/ct`,
+              quality: block.entry.quality || '—',
+              weight: `${block.entry.weight} ct`,
+              amount: rowAmt,
+              amountDisplay: formatIndianCurrency(rowAmt),
+            };
+        });
 
         setPricing({
           grossWtDisplay: scanData.grossWt || '—',

@@ -57,7 +57,7 @@ export function ReviewScannedResultsModal({
   const [rateErrors, setRateErrors] = useState<Record<number, boolean>>({});
   const [showLabourValidation, setShowLabourValidation] = useState(false);
   const [karatDropdownMode, setKaratDropdownMode] = useState(false);
-  const [useNetWtFormula, setUseNetWtFormula] = useState(false);
+  const [useNetWtFormula, setUseNetWtFormula] = useState(!scanData.netWt);
 
   const stoneDataKey = `${structuredData.diamonds ?? ''}|${structuredData.colorstones ?? ''}`;
 
@@ -78,24 +78,20 @@ export function ReviewScannedResultsModal({
   const canConfirm = Boolean(scanData.grossWt.trim()) && !hasRateError;
 
   useEffect(() => {
-    if (activeFormula !== 'F2') {
-      setKaratDropdownMode(false);
-      return;
-    }
-
     const scannedKarat = resolveScannedKarat(scanData.karat, scanData.tunch);
-    const { karat, requiresDropdown } = applyFormula2KaratConstraint(scannedKarat, formula2Rules);
-    setKaratDropdownMode(requiresDropdown);
-
-    if (requiresDropdown) {
-      if (scanData.karat) {
-        onFieldChange('karat', '');
+    
+    if (activeFormula === 'F2') {
+      const { karat, requiresDropdown } = applyFormula2KaratConstraint(scannedKarat, formula2Rules);
+      setKaratDropdownMode(requiresDropdown || !scannedKarat);
+      if (requiresDropdown) {
+        if (scanData.karat) onFieldChange('karat', '');
+        return;
       }
-      return;
-    }
-
-    if (karat && karat !== scanData.karat) {
-      onFieldChange('karat', karat);
+      if (karat && karat !== scanData.karat) {
+        onFieldChange('karat', karat);
+      }
+    } else {
+      setKaratDropdownMode(!scannedKarat);
     }
   }, [activeFormula, formula2Rules, scanData.karat, scanData.tunch, onFieldChange]);
 
@@ -157,9 +153,7 @@ export function ReviewScannedResultsModal({
     onConfirm();
   };
 
-  const requiresKaratSelection =
-    activeFormula === 'F2' &&
-    (karatDropdownMode || !isKaratWhitelisted(scanData.karat, formula2Rules));
+  const requiresKaratSelection = !scanData.karat;
 
   return (
     <View className="rounded-[20px] bg-white px-screen py-5 shadow-lg">
