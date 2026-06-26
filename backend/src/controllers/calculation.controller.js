@@ -60,11 +60,13 @@ const calculateMRP = async (req, res, next) => {
     }
 
     // 5. Calculate Gold Amount
-    const baseGoldRate = liveRatesData.taxSettings?.scannerCalculationUse === 'cash' 
+    const baseGoldRatePer10g = liveRatesData.taxSettings?.scannerCalculationUse === 'cash' 
         ? liveRatesData.taxSettings.cashFinalRate 
         : liveRatesData.taxSettings.rtgsFinalRate;
+    
+    const baseGoldRatePerGram = (baseGoldRatePer10g || 0) / 10;
 
-    const goldAmount = baseGoldRate * pureWeight;
+    const goldAmount = baseGoldRatePerGram * pureWeight;
 
     // 6. Calculate Final MRP
     const finalMRP = goldAmount + diamondAmount + colorstoneAmount + labourAmount;
@@ -74,7 +76,7 @@ const calculateMRP = async (req, res, next) => {
         diamondAmount,
         colorstoneAmount,
         pureWeight,
-        goldRateApplied: baseGoldRate,
+        goldRateApplied: baseGoldRatePerGram,
         goldAmount,
         labourAmount
       },
