@@ -113,12 +113,21 @@ PATTERN F — Silver tag:
   SWt <v>  Purity <v>  Lab <v>
   → netWeight (silver), purity, labour
 
-PATTERN G — Delimited Stone Tag (Separated by \, /, or |):
-  Type\\Weight\\Rate or Type\\Weight\\Pieces\\Rate
-  Example: "RD\\6.72\\30000"
-  → This is a Diamond. Add an object to the "diamonds" array: shape="RD", weight="6.72", rate="30000".
-  Example: "CS\\10.82\\500"
-  → This is a Colour Stone. Add an object to the "colorstones" array: type="CS", weight="10.82", rate="500".
+PATTERN G — Delimited Stone Tag (Separated by \, /, |, or OCR mistakes like 1, I, l, :):
+  Type|Weight|Rate or Type|Weight|Pieces|Rate
+  Example: "RD\\6.72\\30000" or "CS/10.82/500"
+  → Diamond shape="RD", weight="6.72", rate="30000".
+  → Colour Stone type="CS", weight="10.82", rate="500".
+
+  *** CRITICAL OCR DELIMITER HALLUCINATION RULE ***
+  OCR often misreads the separators (/, \\, |) as the number "1" or letter "I" or "l".
+  Example Mistake: "RD16.72130000" or "RDI6.72I30000"
+  - After CS, RD, or any diamond abbreviation, there is generally a separator. Do NOT consider it as part of the weight! "RD16.72" is usually "RD" | "6.72".
+  - Carat weights ALMOST ALWAYS have exactly 2 decimal places (e.g., .54, .72).
+  - If you see a "1" or "I" immediately after the 2nd decimal digit, it is a SEPARATOR, NOT the number 1!
+  - Example: "RD12.541500" MUST BE SPLIT as "RD" | "2.54" | "500". The "1" after 2.54 is a delimiter.
+  - Example: "CS112.581200" MUST BE SPLIT as "CS" | "12.58" | "200".
+
   CRITICAL: If there are multiple lines (e.g. two RD lines), you MUST create a SEPARATE object in the JSON array for EACH line! Do not combine them into one!
 
 ==============================================================
