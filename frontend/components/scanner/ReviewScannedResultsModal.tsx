@@ -185,7 +185,7 @@ export function ReviewScannedResultsModal({
 
       {requiresKaratSelection && !scanData.karat ? (
         <Text className="mb-3 text-xs text-danger-text">
-          Select a karat from Touch Purity before confirming.
+          Select a karat from Tunch Purity before confirming.
         </Text>
       ) : null}
 

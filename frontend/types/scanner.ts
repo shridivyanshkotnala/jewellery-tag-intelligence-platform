@@ -230,6 +230,7 @@ export interface CalculateMrpPayload {
   jewelleryType: string;
   netWt: number;
   purityKarat: string;
+  customPurityPercent?: number;
   labourCharge?: {
     type: 'PERCENTAGE' | 'AMOUNT';
     value: number;

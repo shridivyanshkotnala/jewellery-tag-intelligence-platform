@@ -78,7 +78,7 @@ export function RawMaterialGoldSection({
         { label: 'Gross Wt.', value: pricing.grossWtDisplay },
         { label: 'Net Wt.', value: pricing.netWtDisplay },
         {
-          label: 'Touch Purity',
+          label: 'Tunch Purity',
           value: pricing.selectedKarat,
           showDropdown: true,
         },
@@ -125,7 +125,7 @@ export function RawMaterialGoldSectionInteractive({
 
       <View className="flex-row">
         <View className="flex-1 border-r border-border p-4">
-          <Text className="text-xs text-text-muted">Touch Purity</Text>
+          <Text className="text-xs text-text-muted">Tunch Purity</Text>
           {onKaratChange ? (
             <KaratDropdown
               value={pricing.selectedKarat}

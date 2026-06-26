@@ -117,7 +117,7 @@ export function RawMaterialSection({
         </FormFieldGridItem>
         <FormFieldGridItem>
           <View className="mb-2.5">
-            <FieldLabel label="Touch Purity" />
+            <FieldLabel label="Tunch Purity" />
             {editable ? (
               <>
                 <Pressable

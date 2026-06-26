@@ -9,6 +9,7 @@ const calculateMRP = async (req, res, next) => {
       jewelleryType,
       netWt, 
       purityKarat, 
+      customPurityPercent,
       labourCharge, 
       diamonds, 
       colorstones 
@@ -19,9 +20,15 @@ const calculateMRP = async (req, res, next) => {
     // 1. Fetch live gold rates and purity percentages for this business
     const liveRatesData = await rateCalculationService.getLiveGoldRates(businessId);
     
-    // Find the karat purity from the database rows
-    const karatData = liveRatesData.karatRates.find(r => r.carat === purityKarat);
+    // Find the karat purity from the database rows (normalize '14K' vs '14Kt')
+    const normalizedKarat = purityKarat ? purityKarat.replace(/t$/i, '').toUpperCase() : '';
+    const karatData = liveRatesData.karatRates.find(r => r.carat.replace(/t$/i, '').toUpperCase() === normalizedKarat);
     const karatPurityPercent = karatData ? karatData.purity : 0;
+
+    let effectivePurityPercent = karatPurityPercent;
+    if (customPurityPercent !== undefined && customPurityPercent !== null) {
+       effectivePurityPercent = parseFloat(customPurityPercent) || 0;
+    }
 
     // 2. Calculate Diamond Amount
     let diamondAmount = 0;
@@ -54,7 +61,7 @@ const calculateMRP = async (req, res, next) => {
       labourAmount = 0; // Labour is included in pure weight markup
     } else {
       // Labour is AMOUNT (per gram)
-      pureWeight = numericNetWt * (karatPurityPercent / 100);
+      pureWeight = numericNetWt * (effectivePurityPercent / 100);
       const labourRatePerGm = parseFloat(labourCharge?.value) || 0;
       labourAmount = numericNetWt * labourRatePerGm;
     }

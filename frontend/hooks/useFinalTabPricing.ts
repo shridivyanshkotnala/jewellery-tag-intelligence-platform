@@ -59,6 +59,7 @@ export function useFinalTabPricing({
       jewelleryType: selectedType,
       netWt: parseNumericValue(scanData.netWt) || 0,
       purityKarat: resolvedKarat,
+      customPurityPercent: parseNumericValue(scanData.customPurityPercent),
       diamonds: diamonds.map(d => ({ weight: parseNumericValue(d.weight) || 0, rate: parseNumericValue(d.rate) || 0 })),
       colorstones: colorstones.map(c => ({ weight: parseNumericValue(c.weight) || 0, rate: parseNumericValue(c.rate) || 0 })),
     };
