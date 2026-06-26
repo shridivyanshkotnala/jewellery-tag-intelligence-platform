@@ -26,8 +26,8 @@ const calculateMRP = async (req, res, next) => {
     const karatPurityPercent = karatData ? karatData.purity : 0;
 
     let effectivePurityPercent = karatPurityPercent;
-    if (customPurityPercent !== undefined && customPurityPercent !== null) {
-       effectivePurityPercent = parseFloat(customPurityPercent) || 0;
+    if (customPurityPercent) {
+       effectivePurityPercent = parseFloat(customPurityPercent) || karatPurityPercent;
     }
 
     // 2. Calculate Diamond Amount
