@@ -1,6 +1,7 @@
 import type { JewelleryType, ScanItemData, StoneEntry, StructuredScanData } from '@/types/scanner';
 import type { WishlistItem, WishlistItemSnapshot } from '@/types/wishlist';
 import {
+  buildStoneAmountRow,
   computeFinalTabPricing,
   computeGoldAmountWithPurityOverride,
   type FinalTabPricingResult,
@@ -8,7 +9,6 @@ import {
 } from '@/utils/scanPriceCalculation';
 import {
   buildDisplayStoneBlocks,
-  buildStoneAmountRow,
   parseStoneArraysFromStructuredData,
 } from '@/utils/stoneSequenceUtils';
 import { resolveScannedKarat } from '@/utils/formulaUtils';
