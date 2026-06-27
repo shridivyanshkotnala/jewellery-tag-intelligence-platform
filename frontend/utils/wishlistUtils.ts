@@ -13,8 +13,15 @@ import {
 } from '@/utils/stoneSequenceUtils';
 import { resolveScannedKarat } from '@/utils/formulaUtils';
 
-function generateWishlistId(): string {
-  return `wl-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+/** Deterministic ID from tagCode — same scan always produces the same wishlist entry. */
+function generateWishlistId(tagCode: string): string {
+  // Simple djb2-style hash → stable string key
+  let hash = 5381;
+  for (let i = 0; i < tagCode.length; i++) {
+    hash = ((hash << 5) + hash) ^ tagCode.charCodeAt(i);
+    hash = hash >>> 0; // keep unsigned 32-bit
+  }
+  return `wl-${tagCode.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${hash.toString(16)}`;
 }
 
 export function buildTagCode(selectedType: JewelleryType, sku?: string): string {
@@ -134,11 +141,12 @@ export function buildWishlistItem(input: {
 
   const snapshot = buildWishlistSnapshot({ ...input, pricing });
   const now = new Date().toISOString();
+  const tagCode = buildTagCode(input.selectedType, input.scanData.sku);
 
   return {
-    id: generateWishlistId(),
+    id: generateWishlistId(tagCode),   // deterministic — same tag = same id
     title: buildWishlistTitle(input.selectedType),
-    tagCode: buildTagCode(input.selectedType, input.scanData.sku),
+    tagCode,
     priceBadge: formatWishlistPriceBadge(input.selectedType, pricing),
     totalMrp: Math.round(pricing.ultimateMrp),
     addedAt: now,

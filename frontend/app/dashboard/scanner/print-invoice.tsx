@@ -1,91 +1,133 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { CheckCircle2, Printer } from 'lucide-react-native';
+import { useState } from 'react';
+import { Alert, Linking, Text, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { CheckCircle2, Download, ExternalLink, Home } from 'lucide-react-native';
 
-import { InvoiceGenerationBilling } from '@/components/scanner/InvoiceGenerationBilling';
 import { PrimaryGreenButton } from '@/components/scanner/PrimaryGreenButton';
 import { ScanScreenWrapper } from '@/components/scanner/ScanScreenWrapper';
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
-import { useScannerStore } from '@/store/scannerStore';
-import { resolveInvoiceNumber } from '@/utils/invoiceCalculation';
-import { parseStoneArraysFromStructuredData } from '@/utils/stoneSequenceUtils';
-
-type PrintState = 'preparing' | 'printing' | 'success';
 
 export default function PrintInvoiceScreen() {
   const router = useRouter();
-  const [printState, setPrintState] = useState<PrintState>('preparing');
+  const params = useLocalSearchParams<{
+    pdfUrl?: string;
+    invoiceNumber?: string;
+    invoiceDate?: string;
+  }>();
 
-  const scanData = useScannerStore((state) => state.scanData);
-  const structuredData = useScannerStore((state) => state.structuredData);
-  const scanId = useScannerStore((state) => state.scanId);
+  const [opening, setOpening] = useState(false);
 
-  const { diamonds, colorstones } = useMemo(
-    () => parseStoneArraysFromStructuredData(structuredData, scanData),
-    [structuredData, scanData],
-  );
+  const pdfUrl = params.pdfUrl ?? '';
+  const invoiceNumber = params.invoiceNumber ?? '—';
+  const invoiceDate = params.invoiceDate ?? '—';
 
-  const invoiceNumber = useMemo(
-    () => resolveInvoiceNumber(scanId, scanData.sku),
-    [scanId, scanData.sku],
-  );
-
-  useEffect(() => {
-    if (printState === 'preparing') {
-      const timer = setTimeout(() => setPrintState('printing'), 1200);
-      return () => clearTimeout(timer);
+  const handleOpenPdf = async () => {
+    if (!pdfUrl) {
+      Alert.alert('Error', 'PDF URL not available.');
+      return;
     }
-    if (printState === 'printing') {
-      const timer = setTimeout(() => setPrintState('success'), 2000);
-      return () => clearTimeout(timer);
+    setOpening(true);
+    try {
+      const supported = await Linking.canOpenURL(pdfUrl);
+      if (supported) {
+        await Linking.openURL(pdfUrl);
+      } else {
+        Alert.alert('Cannot Open', 'Unable to open the PDF on this device. Try copying the URL manually.');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to open the PDF. Please try again.');
+    } finally {
+      setOpening(false);
     }
-  }, [printState]);
+  };
 
   return (
     <ScanScreenWrapper
-      title="Print Invoice"
+      title="Invoice Generated"
       className="bg-surface-muted"
       scanButtonVariant="green"
       footer={
-        printState === 'success' ? (
-          <PrimaryGreenButton title="Back to Home" onPress={() => router.push('/dashboard')} />
-        ) : undefined
+        <View className="gap-3">
+          <PrimaryGreenButton
+            title={opening ? 'Opening...' : 'Open PDF'}
+            onPress={handleOpenPdf}
+            icon={<ExternalLink size={18} color="#FFFFFF" />}
+          />
+          <TouchableOpacity
+            onPress={() => router.push('/dashboard')}
+            className="flex-row items-center justify-center gap-2 rounded-button border border-border bg-white py-3"
+          >
+            <Home size={18} color="#1A332E" />
+            <Text className="text-sm font-semibold text-text-primary">Back to Home</Text>
+          </TouchableOpacity>
+        </View>
       }
     >
       <BackgroundPattern />
 
-      {printState === 'preparing' || printState === 'printing' ? (
-        <View className="mb-6 items-center rounded-2xl border border-border bg-white py-10">
-          <ActivityIndicator size="large" color="#1A332E" />
-          <View className="mt-4 flex-row items-center gap-2">
-            <Printer size={20} color="#1A332E" />
-            <Text className="text-base font-semibold text-text-primary">
-              {printState === 'preparing' ? 'Preparing invoice...' : 'Sending to printer...'}
-            </Text>
+      {/* Success Card */}
+      <View className="mb-4 overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        {/* Header */}
+        <View className="items-center bg-primary px-6 pb-6 pt-8">
+          <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-white/15">
+            <CheckCircle2 size={44} color="#FFFFFF" />
           </View>
-          <Text className="mt-2 text-sm text-text-secondary">
-            Please wait while the invoice is being processed
+          <Text className="text-2xl font-bold text-white">Invoice Ready!</Text>
+          <Text className="mt-1 text-center text-sm text-white/70">
+            Your PDF has been generated successfully
           </Text>
         </View>
-      ) : (
-        <View className="mb-6 items-center rounded-2xl bg-success-bg py-6">
-          <CheckCircle2 size={48} color="#34A853" />
-          <Text className="mt-3 text-lg font-bold text-success-text">Invoice Printed</Text>
-          <Text className="mt-1 text-sm text-text-secondary">
-            Invoice {invoiceNumber} sent to printer successfully
-          </Text>
-        </View>
-      )}
 
-      <InvoiceGenerationBilling
-        scanData={scanData}
-        structuredData={structuredData}
-        diamonds={diamonds}
-        colorstones={colorstones}
-        scanId={scanId}
-        readOnly
-      />
+        <View className="h-1 bg-accent-gold" />
+
+        {/* Invoice Details */}
+        <View className="gap-4 p-5">
+          <View className="rounded-xl border border-border bg-surface-muted p-4">
+            <View className="mb-3 border-b border-border pb-3">
+              <Text className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-text-label">
+                Invoice Number
+              </Text>
+              <Text className="text-base font-bold text-text-primary">{invoiceNumber}</Text>
+            </View>
+            <View>
+              <Text className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-text-label">
+                Generated On
+              </Text>
+              <Text className="text-sm text-text-primary">{invoiceDate}</Text>
+            </View>
+          </View>
+
+          {/* PDF URL pill */}
+          {pdfUrl ? (
+            <View className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <View className="mb-2 flex-row items-center gap-2">
+                <Download size={16} color="#16A34A" />
+                <Text className="text-[10px] font-bold uppercase tracking-wide text-success-text">
+                  PDF Download Link
+                </Text>
+              </View>
+              <Text
+                className="text-xs leading-5 text-text-secondary"
+                numberOfLines={3}
+                ellipsizeMode="middle"
+              >
+                {pdfUrl}
+              </Text>
+            </View>
+          ) : (
+            <View className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <Text className="text-sm text-red-600">
+                PDF URL not available. Please try generating again.
+              </Text>
+            </View>
+          )}
+
+          <Text className="text-center text-xs leading-5 text-text-muted">
+            The PDF link is hosted by PDFMonkey and will be available for a limited time.
+            Tap "Open PDF" to view or download your invoice.
+          </Text>
+        </View>
+      </View>
     </ScanScreenWrapper>
   );
 }

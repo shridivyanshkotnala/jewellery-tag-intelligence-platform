@@ -26,6 +26,7 @@ app.use('/api/v1/employees', require('./routes/employee.routes'));
 app.use('/api/v1/rates', require('./routes/rate.routes'));
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/wishlist', require('./routes/wishlist.routes'));
+app.use('/api/v1/invoices', require('./routes/invoice.routes'));
 
 
 
