@@ -17,6 +17,8 @@ interface WishlistState {
   removeItem: (id: string) => Promise<void>;
   clearAll: () => Promise<void>;
   getItemById: (id: string) => WishlistItem | undefined;
+  /** Returns true if a wishlist entry with the same tagCode already exists. */
+  isInWishlist: (tagCode: string) => boolean;
   /** Fetches items from the backend and replaces local state. */
   syncFromApi: () => Promise<void>;
 }
@@ -72,6 +74,9 @@ export const useWishlistStore = create<WishlistState>()(
       },
 
       getItemById: (id) => get().items.find((item) => item.id === id),
+
+      isInWishlist: (tagCode) =>
+        get().items.some((item) => item.tagCode === tagCode),
 
       syncFromApi: async () => {
         set({ isLoading: true });
