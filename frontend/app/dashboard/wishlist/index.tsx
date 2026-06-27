@@ -1,4 +1,5 @@
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,31 +12,60 @@ import { useWishlistStore } from '@/store/wishlistStore';
 export default function WishlistScreen() {
   const router = useRouter();
   const items = useWishlistStore((s) => s.items);
+  const isLoading = useWishlistStore((s) => s.isLoading);
   const removeItem = useWishlistStore((s) => s.removeItem);
   const clearAll = useWishlistStore((s) => s.clearAll);
+  const syncFromApi = useWishlistStore((s) => s.syncFromApi);
+
+  // Fetch latest from backend each time the screen mounts
+  useEffect(() => {
+    syncFromApi();
+  }, [syncFromApi]);
 
   const handleDeleteItem = (id: string) => {
-    Alert.alert('Delete item', 'Do you want to delete this?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => removeItem(id),
-      },
-    ]);
+    Alert.alert(
+      'Delete Item',
+      'Are you sure you want to remove this item from your wishlist?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeItem(id);
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : 'Failed to delete item.';
+              Alert.alert('Error', msg);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleClearWishlist = () => {
     if (items.length === 0) return;
 
-    Alert.alert('Clear wishlist', 'Do you want to clear all the wishlist?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear All',
-        style: 'destructive',
-        onPress: () => clearAll(),
-      },
-    ]);
+    Alert.alert(
+      'Clear Wishlist',
+      'Are you sure you want to remove all items from your wishlist?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearAll();
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : 'Failed to clear wishlist.';
+              Alert.alert('Error', msg);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleOpenItem = (id: string) => {
@@ -49,7 +79,12 @@ export default function WishlistScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <WishlistScreenHeader onClearWishlist={handleClearWishlist} />
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading wishlist…</Text>
+        </View>
+      ) : items.length === 0 ? (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyTitle}>Your wishlist is empty</Text>
           <Text style={styles.emptyHint}>
@@ -90,6 +125,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.screenHorizontal,
     paddingBottom: 120,
   },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingBottom: 100,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
   emptyWrap: {
     flex: 1,
     alignItems: 'center',
@@ -110,3 +156,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+

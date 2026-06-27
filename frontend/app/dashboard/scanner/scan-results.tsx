@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Alert, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Heart } from 'lucide-react-native';
 
@@ -25,6 +25,8 @@ export default function ScanResultsScreen() {
   const getWishlistItem = useWishlistStore((s) => s.getItemById);
   const demoResult = isDemoScanMode() ? MOCK_SCAN_RESULT : null;
 
+  const [addingToWishlist, setAddingToWishlist] = useState(false);
+
   const wishlistItem = params.wishlistId ? getWishlistItem(String(params.wishlistId)) : undefined;
   const isFromWishlist = params.fromWishlist === '1' && Boolean(wishlistItem);
 
@@ -46,18 +48,29 @@ export default function ScanResultsScreen() {
     return parseStoneArraysFromStructuredData(structuredData, scanData);
   }, [isFromWishlist, wishlistItem, structuredData, scanData]);
 
-  const handleAddToWishlist = () => {
-    const pricing = computeWishlistPricing(scanData, structuredData, selectedType);
-    const item = buildWishlistItem({
-      scanData,
-      structuredData,
-      selectedType,
-      diamonds,
-      colorstones,
-      pricing,
-    });
-    addWishlistItem(item);
-    Alert.alert('Wishlist', 'Item added to your wishlist.');
+  const handleAddToWishlist = async () => {
+    if (addingToWishlist) return;
+    setAddingToWishlist(true);
+    try {
+      const pricing = computeWishlistPricing(scanData, structuredData, selectedType);
+      const scanTimestamp = new Date().toISOString();
+      const item = buildWishlistItem({
+        scanData,
+        structuredData,
+        selectedType,
+        diamonds,
+        colorstones,
+        pricing,
+        scanTimestamp,
+      });
+      await addWishlistItem(item);
+      Alert.alert('Wishlist', 'Item added to your wishlist.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add item. Please try again.';
+      Alert.alert('Error', message);
+    } finally {
+      setAddingToWishlist(false);
+    }
   };
 
   return (
@@ -70,9 +83,13 @@ export default function ScanResultsScreen() {
         <View className="flex-row gap-3">
           {!isFromWishlist ? (
             <OutlineButton
-              title="Add to Wishlist"
+              title={addingToWishlist ? 'Adding...' : 'Add to Wishlist'}
               onPress={handleAddToWishlist}
-              icon={<Heart size={18} color="#1A332E" />}
+              icon={
+                addingToWishlist
+                  ? <ActivityIndicator size={16} color="#1A332E" />
+                  : <Heart size={18} color="#1A332E" />
+              }
             />
           ) : null}
           <PrimaryGreenButton
@@ -96,3 +113,4 @@ export default function ScanResultsScreen() {
     </ScanScreenWrapper>
   );
 }
+

@@ -1,6 +1,5 @@
 import type { JewelleryType, ScanItemData, StoneEntry, StructuredScanData } from '@/types/scanner';
 import type { WishlistItem, WishlistItemSnapshot } from '@/types/wishlist';
-import { resolveScannedKarat } from '@/utils/formulaUtils';
 import {
   computeFinalTabPricing,
   computeGoldAmountWithPurityOverride,
@@ -12,6 +11,7 @@ import {
   buildStoneAmountRow,
   parseStoneArraysFromStructuredData,
 } from '@/utils/stoneSequenceUtils';
+import { resolveScannedKarat } from '@/utils/formulaUtils';
 
 function generateWishlistId(): string {
   return `wl-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -27,37 +27,37 @@ export function buildTagCode(selectedType: JewelleryType, sku?: string): string 
   return `${prefix}-RP-${year}-${suffix}`;
 }
 
-export function buildWishlistTitle(selectedType: JewelleryType, scanData: ScanItemData): string {
-  if (selectedType === 'Diamond') return 'Diamond';
-  const karat = resolveScannedKarat(scanData.karat, scanData.tunch);
-  return karat ? `Gold (${karat})` : 'Gold';
+export function buildWishlistTitle(selectedType: JewelleryType): string {
+  switch (selectedType) {
+    case 'Diamond': return 'Diamond';
+    case 'Gold':    return 'Gold';
+    case 'Silver':  return 'Silver';
+    default:        return 'Colour Stone';
+  }
 }
 
 export function formatWishlistPriceBadge(
-  selectedType: JewelleryType,
+  _selectedType: JewelleryType,
   pricing: FinalTabPricingResult,
 ): string {
-  if (selectedType === 'Diamond') {
-    const amount = Math.round(pricing.ultimateMrp).toLocaleString('en-IN');
-    return `₹ ${amount}/ct (Including Tax)`;
-  }
-
-  const rate = Math.round(pricing.goldRatePerGram || 0).toLocaleString('en-IN');
-  return `₹ ${rate}/g (Including Tax)`;
+  // Always show the total MRP regardless of jewellery type
+  const amount = Math.round(pricing.ultimateMrp).toLocaleString('en-IN');
+  return `₹ ${amount} (Including Tax)`;
 }
 
 export function formatWishlistTimestamp(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
 
+  // e.g.  12:52 PM  |  June-12-2026
   const time = date.toLocaleTimeString('en-IN', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  });
+  }).toUpperCase();
   const month = date.toLocaleString('en-US', { month: 'long' });
-  const day = date.getDate();
-  const year = date.getFullYear();
+  const day   = String(date.getDate()).padStart(2, '0');
+  const year  = date.getFullYear();
   return `${time} | ${month}-${day}-${year}`;
 }
 
@@ -125,19 +125,24 @@ export function buildWishlistItem(input: {
   diamonds: StoneEntry[];
   colorstones: StoneEntry[];
   pricing?: FinalTabPricingResult;
+  /** ISO string of when the scan was originally created */
+  scanTimestamp?: string;
 }): WishlistItem {
   const pricing =
     input.pricing ??
     computeWishlistPricing(input.scanData, input.structuredData, input.selectedType);
 
   const snapshot = buildWishlistSnapshot({ ...input, pricing });
+  const now = new Date().toISOString();
 
   return {
     id: generateWishlistId(),
-    title: buildWishlistTitle(input.selectedType, input.scanData),
+    title: buildWishlistTitle(input.selectedType),
     tagCode: buildTagCode(input.selectedType, input.scanData.sku),
     priceBadge: formatWishlistPriceBadge(input.selectedType, pricing),
-    addedAt: new Date().toISOString(),
+    totalMrp: Math.round(pricing.ultimateMrp),
+    addedAt: now,
+    scanTimestamp: input.scanTimestamp ?? now,
     snapshot,
   };
 }

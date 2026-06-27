@@ -13,28 +13,37 @@ interface WishlistCardProps {
 
 export function WishlistCard({ item, onPress, onDelete }: WishlistCardProps) {
   return (
-    <View style={styles.card}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      {/* ─── Header row: title + tag code + delete ─── */}
       <View style={styles.headerRow}>
-        <Pressable onPress={onPress} style={styles.titlePressable}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{item.title}</Text>
-            <View style={styles.tagPill}>
-              <Text style={styles.tagText}>{item.tagCode}</Text>
-            </View>
+        <View style={styles.titleGroup}>
+          <Text style={styles.title}>{item.title}</Text>
+          <View style={styles.tagPill}>
+            <Text style={styles.tagText}>{item.tagCode}</Text>
           </View>
-        </Pressable>
-        <Pressable onPress={onDelete} hitSlop={10} style={styles.deleteBtn}>
+        </View>
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          hitSlop={12}
+          style={styles.deleteBtn}
+        >
           <Trash2 size={18} color="#E53935" />
         </Pressable>
       </View>
 
-      <Pressable onPress={onPress}>
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceText}>{item.priceBadge}</Text>
-        </View>
-        <Text style={styles.timestamp}>{formatWishlistTimestamp(item.addedAt)}</Text>
-      </Pressable>
-    </View>
+      {/* ─── Price badge ─── */}
+      <View style={styles.priceBadge}>
+        <Text style={styles.priceText}>{item.priceBadge}</Text>
+      </View>
+
+      {/* ─── Scan timestamp ─── */}
+      <Text style={styles.timestamp}>
+        {formatWishlistTimestamp(item.scanTimestamp || item.addedAt)}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -52,21 +61,22 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  cardPressed: {
+    opacity: 0.85,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  titlePressable: {
+  titleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
     flex: 1,
     paddingRight: Spacing.sm,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: Spacing.sm,
   },
   title: {
     fontSize: 18,
@@ -76,13 +86,14 @@ const styles = StyleSheet.create({
   tagPill: {
     backgroundColor: '#F0F0F0',
     borderRadius: 999,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   tagText: {
     fontSize: 11,
     fontWeight: '500',
     color: Colors.textSecondary,
+    letterSpacing: 0.3,
   },
   deleteBtn: {
     padding: 4,
@@ -104,5 +115,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     fontSize: 11,
     color: Colors.textMuted,
+    letterSpacing: 0.2,
   },
 });
+
