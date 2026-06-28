@@ -6,6 +6,8 @@ import type {
   StoneRateLookupPayload,
   StoneRateLookupResponse,
   UpdateGoldRatePayload,
+  UpdateGoldTaxSettingsPayload,
+  TaxSettings,
   UpsertLabourRatePayload,
   UpsertStoneRatePayload,
 } from '@/types/rates';
@@ -116,7 +118,17 @@ export function normalizeGoldRatesResponse(response: unknown): GoldRatesResponse
     .map(normalizeGoldRate)
     .filter((item): item is GoldRate => item !== null);
 
-  return { mcxLiveRate, rates };
+  const rawTax = unwrapped.taxSettings as Record<string, unknown> | undefined;
+  let taxSettings: TaxSettings | undefined;
+  if (rawTax) {
+    taxSettings = {
+      rtgsChangeBy: readNumber(rawTax.rtgsChangeBy ?? rawTax.rtgs_change_by) ?? 0,
+      cashChangeBy: readNumber(rawTax.cashChangeBy ?? rawTax.cash_change_by) ?? 0,
+      scannerCalculationUse: (readString(rawTax.scannerCalculationUse) || 'rtgs') as 'rtgs' | 'cash' | 'mcx',
+    };
+  }
+
+  return { mcxLiveRate, rates, taxSettings };
 }
 
 export function normalizeStoneRatesResponse(response: unknown): StoneRate[] {
@@ -152,6 +164,25 @@ export async function updateGoldRate(payload: UpdateGoldRatePayload): Promise<Go
   }
 
   throw new Error('Invalid gold rate update response from server');
+}
+
+export async function updateGoldTaxSettings(payload: UpdateGoldTaxSettingsPayload): Promise<TaxSettings> {
+  const response = await apiRequest<ApiEnvelope>('/rates/gold/tax-settings', {
+    method: 'POST',
+    body: payload as unknown as Record<string, unknown>,
+  });
+  
+  const unwrapped = unwrapApiData(response) as Record<string, unknown>;
+  const rawTax = unwrapped.taxSettings ?? unwrapped;
+  
+  if (rawTax && typeof rawTax === 'object') {
+    return {
+      rtgsChangeBy: readNumber((rawTax as Record<string, unknown>).rtgsChangeBy) ?? 0,
+      cashChangeBy: readNumber((rawTax as Record<string, unknown>).cashChangeBy) ?? 0,
+      scannerCalculationUse: (readString((rawTax as Record<string, unknown>).scannerCalculationUse) || 'rtgs') as 'rtgs' | 'cash' | 'mcx',
+    };
+  }
+  throw new Error('Invalid tax settings response from server');
 }
 
 export async function fetchDiamondRates(): Promise<StoneRate[]> {

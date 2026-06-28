@@ -15,9 +15,16 @@ export interface GoldRate {
   rtgsRate?: number;
 }
 
+export interface TaxSettings {
+  rtgsChangeBy: number;
+  cashChangeBy: number;
+  scannerCalculationUse: 'rtgs' | 'cash' | 'mcx';
+}
+
 export interface GoldRatesResponse {
   mcxLiveRate: number;
   rates: GoldRate[];
+  taxSettings?: TaxSettings;
 }
 
 export interface UpdateGoldRatePayload {
@@ -25,6 +32,12 @@ export interface UpdateGoldRatePayload {
   purity: number;
   increaseByAmount: number;
   increaseByType: GoldIncreaseByType;
+}
+
+export interface UpdateGoldTaxSettingsPayload {
+  rtgsChangeBy?: number;
+  cashChangeBy?: number;
+  scannerCalculationUse?: 'rtgs' | 'cash' | 'mcx';
 }
 
 export interface StoneRate {

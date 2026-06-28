@@ -53,6 +53,7 @@ import {
 import {
   fetchGoldRates,
   updateGoldRate,
+  updateGoldTaxSettings,
 } from '@/utils/ratesApi';
 
 const BUTTON_GREEN = '#1B3022';
@@ -151,6 +152,11 @@ export default function MarketRatesScreen() {
       const gold = await fetchGoldRates();
       setMcxLiveRate(gold.mcxLiveRate);
       setGoldRates(gold.rates);
+      if (gold.taxSettings) {
+        setRtgsChange(gold.taxSettings.rtgsChangeBy);
+        setCashChange(gold.taxSettings.cashChangeBy);
+        setScannerCalculationUse(gold.taxSettings.scannerCalculationUse);
+      }
     } catch (error) {
       const message =
         error instanceof ApiError ? error.message : 'Failed to load market rates. Please try again.';
@@ -279,13 +285,41 @@ export default function MarketRatesScreen() {
     setEditingTaxTarget(target);
   };
 
-  const handleApplyTaxChange = (change: number) => {
-    if (editingTaxTarget === 'rtgs') {
-      setRtgsChange(change);
-    } else if (editingTaxTarget === 'cash') {
-      setCashChange(change);
+  const handleApplyTaxChange = async (change: number) => {
+    const isRtgs = editingTaxTarget === 'rtgs';
+    const payload = isRtgs ? { rtgsChangeBy: change } : { cashChangeBy: change };
+    
+    setSaving(true);
+    try {
+      const updated = await updateGoldTaxSettings(payload);
+      setRtgsChange(updated.rtgsChangeBy);
+      setCashChange(updated.cashChangeBy);
+      setScannerCalculationUse(updated.scannerCalculationUse);
+      setEditingTaxTarget(null);
+      showToast(`${isRtgs ? 'RTGS' : 'Cash'} setting updated`, 'success');
+      // Reload rates to reflect new calculation across all karats globally
+      await loadRates();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Failed to save tax setting';
+      showToast(message, 'error');
+    } finally {
+      setSaving(false);
     }
-    setEditingTaxTarget(null);
+  };
+
+  const handleScannerCalculationChange = async (value: ScannerCalculationUse) => {
+    setSaving(true);
+    try {
+      const updated = await updateGoldTaxSettings({ scannerCalculationUse: value });
+      setScannerCalculationUse(updated.scannerCalculationUse);
+      showToast('Scanner base updated', 'success');
+      await loadRates();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Failed to update scanner base';
+      showToast(message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -312,7 +346,7 @@ export default function MarketRatesScreen() {
             <GoldTaxSettingsRow onPress={() => setTaxSettingsVisible(true)} />
             <ScannerCalculationPicker
               value={scannerCalculationUse}
-              onChange={setScannerCalculationUse}
+              onChange={handleScannerCalculationChange}
             />
             <Text style={styles.sectionTitle}>Gold Karat Rates</Text>
             {displayGoldRates.length > 0 ? (
