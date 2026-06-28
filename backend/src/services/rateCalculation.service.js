@@ -74,13 +74,21 @@ const getLiveGoldRates = async (businessId) => {
       }
     }
 
+    // Compute all three rates explicitly for the UI dashboard
+    const mcxRate = Math.round(mcxLiveRate * (row.purity / 100));
+    const cashRate = Math.round(cashFinalRate * (row.purity / 100));
+    const rtgsRate = Math.round(rtgsFinalRate * (row.purity / 100));
+
     return {
       _id: row._id,
       carat: row.carat,
       purity: row.purity,
       increaseByAmount: row.increaseByAmount,
       increaseByType: row.increaseByType,
-      finalRate: Math.round(finalRate * 100) / 100
+      finalRate: Math.round(finalRate * 100) / 100, // Legacy fallback
+      mcxRate,
+      cashRate,
+      rtgsRate
     };
   });
 

@@ -10,6 +10,9 @@ export interface GoldRate {
   increaseByAmount?: number;
   increaseByType?: GoldIncreaseByType;
   baseRate?: number;
+  mcxRate?: number;
+  cashRate?: number;
+  rtgsRate?: number;
 }
 
 export interface GoldRatesResponse {
