@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -98,6 +98,7 @@ export default function MarketRatesScreen() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const activeTab = useMemo(() => parseTabParam(tab), [tab]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [mcxLiveRate, setMcxLiveRate] = useState(0);
   const [goldRates, setGoldRates] = useState<GoldRate[]>([]);
@@ -144,19 +145,22 @@ export default function MarketRatesScreen() {
     setToast({ visible: true, message, type });
   };
 
-  const loadRates = useCallback(async () => {
-    setLoading(true);
+  const loadRates = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
 
     try {
       const gold = await fetchGoldRates();
       setMcxLiveRate(gold.mcxLiveRate);
       setGoldRates(gold.rates);
+      if (isRefresh) showToast('Rates refreshed successfully', 'success');
     } catch (error) {
       const message =
         error instanceof ApiError ? error.message : 'Failed to load market rates. Please try again.';
       showToast(message, 'error');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -295,6 +299,15 @@ export default function MarketRatesScreen() {
       <ScrollView
         contentContainerStyle={screenStyles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          activeTab === 'gold' ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void loadRates(true)}
+              tintColor={BUTTON_GREEN}
+            />
+          ) : undefined
+        }
       >
         <PageHeader
           title={TAB_SCREEN_TITLE[activeTab]}

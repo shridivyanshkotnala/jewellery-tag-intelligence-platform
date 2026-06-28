@@ -90,14 +90,6 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <View style={styles.filterRow}>
-          <View style={styles.tabPill}>
-            <View style={styles.tabBtnActive}>
-              <Text style={styles.tabTextActive}>Gold</Text>
-            </View>
-          </View>
-        </View>
-
         <View style={styles.cardsWrap}>
           {loading ? (
             <View style={styles.loadingWrap}>
@@ -128,7 +120,7 @@ export default function DashboardScreen() {
                       </View>
                       <View style={styles.rateBoxRight}>
                         <Text style={styles.rtgsRateValue}>₹ {rate.rtgsRate?.toLocaleString('en-IN') || 0}</Text>
-                        <Text style={styles.rateSubtitle}>(RTGS Rate)</Text>
+                        <Text style={styles.rtgsRateSubtitle}>(RTGS Rate)</Text>
                       </View>
                     </View>
                   </View>
@@ -193,30 +185,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.white,
   },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.screenHorizontal,
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.sm,
-  },
-  tabPill: {
-    flexDirection: 'row',
-    backgroundColor: TAB_INACTIVE,
-    borderRadius: 24,
-    padding: 4,
-  },
-  tabBtnActive: {
-    backgroundColor: ACCENT_GOLD,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: 20,
-  },
-  tabTextActive: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
   cardsWrap: {
     paddingHorizontal: Spacing.screenHorizontal,
     marginTop: Spacing.md,
@@ -240,24 +208,27 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   mcxTopCard: {
-    borderWidth: 2,
-    borderColor: '#2A4676',
-    borderRadius: 8,
-    padding: Spacing.lg,
+    borderRadius: 12,
+    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1B3022',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   mcxTopLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2A4676',
+    color: '#D4C19C',
   },
   mcxTopValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2A4676',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   rateCard: {
     backgroundColor: '#FFFFFF',
@@ -297,13 +268,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rateBoxRight: {
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: '#1B3022',
     borderRadius: 8,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    justifyContent: 'center',
+    minWidth: 120,
   },
   cashRateValue: {
     fontSize: 16,
@@ -314,11 +285,15 @@ const styles = StyleSheet.create({
   rtgsRateValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: Colors.white,
     marginBottom: 2,
   },
   rateSubtitle: {
     fontSize: 12,
     color: Colors.textSecondary,
+  },
+  rtgsRateSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.85)',
   },
 });
