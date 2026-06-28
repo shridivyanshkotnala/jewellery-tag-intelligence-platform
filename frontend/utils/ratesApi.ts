@@ -62,6 +62,9 @@ function normalizeGoldRate(raw: Record<string, unknown>): GoldRate | null {
     baseRate: readNumber(raw.baseRate ?? raw.base_rate),
     increaseByAmount: readNumber(raw.increaseByAmount ?? raw.increase_by_amount),
     increaseByType: normalizedIncreaseByType,
+    mcxRate: readNumber(raw.mcxRate),
+    cashRate: readNumber(raw.cashRate),
+    rtgsRate: readNumber(raw.rtgsRate),
   };
 }
 

@@ -1,49 +1,47 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect, useRouter, type Href } from 'expo-router';
-import { RefreshCw } from 'lucide-react-native';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNav } from '@/components/dashboard/BottomNav';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { MarketCard } from '@/components/dashboard/MarketCard';
-import { StoneRateCard } from '@/components/dashboard/StoneRateCard';
-import { GOLD_MARKET_DATA } from '@/constants/marketData';
 import { Colors, Spacing } from '@/constants/theme';
 import { useMarketRatesAccess } from '@/hooks/useMarketRatesAccess';
-import type { MarketItem } from '@/types/auth';
-import type { StoneRate } from '@/types/rates';
+import type { GoldRate } from '@/types/rates';
 import { ApiError } from '@/utils/apiClient';
-import { goldRatesToMarketItems } from '@/utils/rateMappers';
-import {
-  fetchColorstoneRates,
-  fetchDiamondRates,
-  fetchGoldRates,
-} from '@/utils/ratesApi';
+import { formatKaratLabel } from '@/utils/goldRateUtils';
+import { fetchGoldRates } from '@/utils/ratesApi';
+
+const CARAT_ORDER = ['22Kt', '20Kt', '18Kt', '14Kt', '9Kt'];
+
+function sortGoldRates(rates: GoldRate[]): GoldRate[] {
+  return [...rates].sort((a, b) => {
+    const ai = CARAT_ORDER.indexOf(a.carat);
+    const bi = CARAT_ORDER.indexOf(b.carat);
+    if (ai === -1 && bi === -1) return a.carat.localeCompare(b.carat);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
 
 const ACCENT_GOLD = '#D4C19C';
 const TAB_INACTIVE = '#F2F2F7';
 
-type MarketTab = 'gold' | 'diamond' | 'colorstone';
-
 export default function DashboardScreen() {
-  const router = useRouter();
   const { canEditMarketRates } = useMarketRatesAccess();
-  const [activeTab, setActiveTab] = useState<MarketTab>('gold');
-  const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [goldItems, setGoldItems] = useState<MarketItem[]>(GOLD_MARKET_DATA);
-  const [diamondRates, setDiamondRates] = useState<StoneRate[]>([]);
-  const [colorstoneRates, setColorstoneRates] = useState<StoneRate[]>([]);
   const [mcxLiveRate, setMcxLiveRate] = useState<number | null>(null);
+  const [goldRates, setGoldRates] = useState<GoldRate[]>([]);
+  
+  const sortedGoldRates = useMemo(() => sortGoldRates(goldRates), [goldRates]);
   const today = new Date();
   const dayLabel = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const dateNum = today.getDate();
@@ -51,15 +49,9 @@ export default function DashboardScreen() {
   const loadMarketData = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
     try {
-      const [gold, diamond, colorstone] = await Promise.all([
-        fetchGoldRates(),
-        fetchDiamondRates(),
-        fetchColorstoneRates(),
-      ]);
+      const gold = await fetchGoldRates();
       setMcxLiveRate(gold.mcxLiveRate);
-      setGoldItems(goldRatesToMarketItems(gold.mcxLiveRate, gold.rates));
-      setDiamondRates(diamond);
-      setColorstoneRates(colorstone);
+      setGoldRates(gold.rates);
     } catch (error) {
       if (showLoader) {
         const message =
@@ -70,7 +62,6 @@ export default function DashboardScreen() {
       }
     } finally {
       if (showLoader) setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
@@ -79,11 +70,6 @@ export default function DashboardScreen() {
       void loadMarketData();
     }, [loadMarketData]),
   );
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    void loadMarketData(false);
-  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -105,69 +91,54 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.filterRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
-            <View style={styles.tabPill}>
-              {(['gold', 'diamond', 'colorstone'] as MarketTab[]).map((tab) => (
-                <Pressable
-                  key={tab}
-                  onPress={() => setActiveTab(tab)}
-                  style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
-                >
-                  <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                    {tab === 'colorstone' ? 'Colorstone' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </Text>
-                </Pressable>
-              ))}
+          <View style={styles.tabPill}>
+            <View style={styles.tabBtnActive}>
+              <Text style={styles.tabTextActive}>Gold</Text>
             </View>
-          </ScrollView>
-
-          <Pressable onPress={handleRefresh} hitSlop={8} style={styles.refreshBtn}>
-            <RefreshCw
-              size={22}
-              color={Colors.textPrimary}
-              style={refreshing ? { opacity: 0.5 } : undefined}
-            />
-          </Pressable>
+          </View>
         </View>
-
-        {canEditMarketRates ? (
-          <Pressable
-            onPress={() => router.push('/dashboard/masters' as Href)}
-            style={styles.editRatesLink}
-          >
-            <Text style={styles.editRatesText}>Edit Market Rates</Text>
-          </Pressable>
-        ) : null}
-
-        {mcxLiveRate != null && activeTab === 'gold' ? (
-          <Text style={styles.mcxHint}>MCX Live: ₹ {mcxLiveRate.toLocaleString('en-IN')}</Text>
-        ) : null}
 
         <View style={styles.cardsWrap}>
           {loading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator size="large" color={Colors.primaryNav} />
+              <Text style={styles.loadingText}>Loading live MCX rates...</Text>
             </View>
-          ) : activeTab === 'gold' ? (
-            goldItems.map((item) => <MarketCard key={item.id} item={item} />)
-          ) : activeTab === 'diamond' ? (
-            diamondRates.length > 0 ? (
-              diamondRates.map((rate) => (
-                <StoneRateCard key={rate.id ?? `${rate.color}-${rate.clarity}`} rate={rate} />
-              ))
-            ) : (
-              <View style={styles.emptyWrap}>
-                <Text style={styles.emptyText}>No diamond rates available yet</Text>
-              </View>
-            )
-          ) : colorstoneRates.length > 0 ? (
-            colorstoneRates.map((rate) => (
-              <StoneRateCard key={rate.id ?? `${rate.color}-${rate.clarity}`} rate={rate} />
-            ))
           ) : (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>No colorstone rates available yet</Text>
-            </View>
+            <>
+              {mcxLiveRate != null ? (
+                <View style={styles.mcxTopCard}>
+                  <Text style={styles.mcxTopLabel}>MCX Gold Rate (24 Kt)</Text>
+                  <Text style={styles.mcxTopValue}>₹ {mcxLiveRate.toLocaleString('en-IN')}</Text>
+                </View>
+              ) : null}
+
+              {sortedGoldRates.length > 0 ? (
+                sortedGoldRates.map((rate) => (
+                  <View key={rate.carat} style={styles.rateCard}>
+                    <View style={styles.rateCardHeader}>
+                      <Text style={styles.cardKaratLabel}>Gold ({formatKaratLabel(rate.carat)}) MCX</Text>
+                      <Text style={styles.cardMcxValue}>₹ {rate.mcxRate?.toLocaleString('en-IN') || 0}</Text>
+                    </View>
+
+                    <View style={styles.rateCardBody}>
+                      <View style={styles.rateBoxLeft}>
+                        <Text style={styles.cashRateValue}>₹ {rate.cashRate?.toLocaleString('en-IN') || 0}</Text>
+                        <Text style={styles.rateSubtitle}>(Cash Rate)</Text>
+                      </View>
+                      <View style={styles.rateBoxRight}>
+                        <Text style={styles.rtgsRateValue}>₹ {rate.rtgsRate?.toLocaleString('en-IN') || 0}</Text>
+                        <Text style={styles.rateSubtitle}>(RTGS Rate)</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyWrap}>
+                  <Text style={styles.emptyText}>No gold rates available</Text>
+                </View>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -186,7 +157,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: Spacing.screenBottom,
+    paddingBottom: Spacing.screenBottom + 80,
   },
   titleRow: {
     flexDirection: 'row',
@@ -197,14 +168,14 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     flex: 1,
-    fontSize: 26,
-    fontWeight: '700',
-    lineHeight: 32,
-    color: Colors.textPrimary,
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 34,
+    color: '#000000',
   },
   dateBadge: {
-    width: 56,
-    height: 56,
+    width: 60,
+    height: 60,
     borderRadius: 12,
     backgroundColor: ACCENT_GOLD,
     alignItems: 'center',
@@ -212,24 +183,22 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   dateDay: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.white,
-  },
-  dateNum: {
-    fontSize: 24,
+    fontSize: 12,
     fontWeight: '700',
     color: Colors.white,
-    lineHeight: 28,
+    marginBottom: 2,
+  },
+  dateNum: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.white,
   },
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.screenHorizontal,
     marginTop: Spacing.xl,
-  },
-  tabScroll: {
-    flex: 1,
+    marginBottom: Spacing.sm,
   },
   tabPill: {
     flexDirection: 'row',
@@ -237,48 +206,30 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 4,
   },
-  tabBtn: {
-    paddingHorizontal: Spacing.lg,
+  tabBtnActive: {
+    backgroundColor: ACCENT_GOLD,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.sm,
     borderRadius: 20,
   },
-  tabBtnActive: {
-    backgroundColor: ACCENT_GOLD,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textMuted,
-  },
   tabTextActive: {
+    fontSize: 15,
+    fontWeight: '700',
     color: Colors.textPrimary,
-  },
-  refreshBtn: {
-    marginLeft: Spacing.md,
-    padding: Spacing.sm,
-  },
-  editRatesLink: {
-    marginHorizontal: Spacing.screenHorizontal,
-    marginTop: Spacing.md,
-  },
-  editRatesText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primaryNav,
-  },
-  mcxHint: {
-    marginHorizontal: Spacing.screenHorizontal,
-    marginTop: Spacing.sm,
-    fontSize: 12,
-    color: Colors.textMuted,
   },
   cardsWrap: {
     paddingHorizontal: Spacing.screenHorizontal,
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
+    gap: Spacing.lg,
   },
   loadingWrap: {
     paddingVertical: 40,
     alignItems: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: { 
+    fontSize: 14, 
+    color: Colors.textMuted 
   },
   emptyWrap: {
     alignItems: 'center',
@@ -287,5 +238,87 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: Colors.textMuted,
+  },
+  mcxTopCard: {
+    borderWidth: 2,
+    borderColor: '#2A4676',
+    borderRadius: 8,
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  mcxTopLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2A4676',
+  },
+  mcxTopValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2A4676',
+  },
+  rateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.lg,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  rateCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingBottom: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  cardKaratLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  cardMcxValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  rateCardBody: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rateBoxLeft: {
+    flex: 1,
+  },
+  rateBoxRight: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+  },
+  cashRateValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  rtgsRateValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  rateSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
 });
