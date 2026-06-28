@@ -343,7 +343,7 @@ export function InvoiceGenerationBilling({
       selectedKarat,
     });
     const stoneRows = buildStoneLineItemRows(stoneEntries);
-    return [goldRow, ...stoneRows];
+    return [goldRow, ...stoneRows].filter(row => row.price > 0 && row.qty > 0);
   }, [goldRates, mcxLiveRate, scanData, selectedKarat, stoneEntries]);
 
   const subtotal = useMemo(() => computeInvoiceSubtotal(lineItemRows), [lineItemRows]);
@@ -418,7 +418,6 @@ export function InvoiceGenerationBilling({
               <View className={isWideLayout ? 'w-[48%]' : 'w-full'}>
                 <ReadOnlyRow label="Customer Name" value={customer.customerName || '—'} />
                 <ReadOnlyRow label="Customer Phone" value={customer.customerPhone || '—'} />
-                <ReadOnlyRow label="Customer GSTIN" value={customer.customerGstin || '—'} />
               </View>
               <View className={isWideLayout ? 'w-[48%]' : 'w-full'}>
                 <ReadOnlyRow
@@ -453,13 +452,6 @@ export function InvoiceGenerationBilling({
                   placeholder="10-digit mobile number"
                   keyboardType="phone-pad"
                   error={phoneError}
-                />
-                <ValidatedInput
-                  label="Customer GSTIN"
-                  value={customer.customerGstin}
-                  onChangeText={(text) => updateCustomer({ customerGstin: sanitizeGstinInput(text) })}
-                  placeholder="15-character GSTIN"
-                  autoCapitalize="characters"
                 />
               </View>
               <View className={isWideLayout ? 'w-[48%]' : 'w-full'}>

@@ -59,7 +59,7 @@ export function buildGoldLineItemRow(input: InvoiceGoldPriceInput): InvoiceLineI
 
   return {
     key: 'gold-base-metal',
-    description: 'Gold Base Metal Weight',
+    description: 'Gold (in grams)',
     note: input.selectedKarat || '—',
     qty: netWtGrams,
     qtyUnit: 'g',
@@ -85,7 +85,7 @@ export function buildStoneLineItemRows(stones: StoneEntry[]): InvoiceLineItemRow
 
     return {
       key: `stone-${entry.stoneType}-${index}`,
-      description: `Stone Type ${index + 1} - ${STONE_TYPE_LABELS[entry.stoneType]}`,
+      description: `${STONE_TYPE_LABELS[entry.stoneType]} (in carats)`,
       note,
       qty,
       qtyUnit: 'Ct',
