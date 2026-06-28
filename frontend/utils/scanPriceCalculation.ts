@@ -15,7 +15,7 @@ export const DEFAULT_KARAT_PURITY_PERCENT: Record<string, number> = {
   '22K': 91.6,
   '20K': 85,
   '18K': 75,
-  '14K': 58.3,
+  '14K': 58.5,
   '9K': 37.5,
 };
 
