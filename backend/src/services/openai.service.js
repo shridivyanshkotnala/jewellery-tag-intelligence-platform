@@ -54,6 +54,14 @@ const analyzeImages = async (frontImagePath, backImagePath, jewelleryType, scanT
       max_tokens: 1500,
     });
 
+
+    console.log("===== OPENAI TOKEN USAGE =====");
+console.log(response.usage);
+console.log("Prompt Tokens:", response.usage.prompt_tokens);
+console.log("Completion Tokens:", response.usage.completion_tokens);
+console.log("Total Tokens:", response.usage.total_tokens);
+console.log("==============================");
+
     const responseText = response.choices[0].message.content;
     const parsedData = JSON.parse(responseText);
     
