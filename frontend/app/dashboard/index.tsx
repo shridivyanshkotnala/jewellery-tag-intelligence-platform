@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -70,6 +70,15 @@ export default function DashboardScreen() {
       void loadMarketData();
     }, [loadMarketData]),
   );
+
+  useEffect(() => {
+    // Auto-refresh the dashboard every 60 seconds
+    const intervalId = setInterval(() => {
+      // Pass false to loadMarketData to avoid showing the loading spinner every minute
+      void loadMarketData(false);
+    }, 60000);
+    return () => clearInterval(intervalId);
+  }, [loadMarketData]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

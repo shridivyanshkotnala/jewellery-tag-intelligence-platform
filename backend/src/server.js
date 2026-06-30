@@ -2,6 +2,7 @@ const os = require('os');
 const app = require('./app');
 const config = require('./config/env');
 const connectDB = require('./config/db');
+const { initMcxScheduler } = require('./services/mcxScheduler.service');
 
 const PORT = config.port || 3000;
 const HOST = '0.0.0.0';
@@ -21,7 +22,10 @@ function getLanAddresses() {
   return [...addresses];
 }
 
-connectDB().then(() => {
+connectDB().then(async () => {
+  // Initialize the background polling scheduler for MCX rates
+  await initMcxScheduler();
+
   app.listen(PORT, HOST, () => {
     console.log(`Server is running on port ${PORT} in ${config.env} mode`);
     console.log('API URLs for Expo / phone testing:');

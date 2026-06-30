@@ -230,6 +230,15 @@ export default function ReviewResultsScreen() {
             )}
           </ScrollView>
         </SafeAreaView>
+
+        {(loading || submitting) ? (
+          <View className="absolute inset-0 z-50 flex-1 items-center justify-center bg-black/70">
+            <ActivityIndicator size="large" color="#D4C19C" />
+            <Text className="mt-4 text-lg font-bold text-white">
+              {loading ? 'Loading Results...' : 'Processing...'}
+            </Text>
+          </View>
+        ) : null}
       </ImageBackground>
 
       <BottomNav activeRoute="scanner" scanButtonVariant="gold" />

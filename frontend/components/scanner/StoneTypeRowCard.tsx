@@ -136,6 +136,17 @@ export function StoneTypeRowCard({
                 containerClassName="mb-2.5"
               />
             </FormFieldGridItem>
+            <FormFieldGridItem>
+              <FormInput
+                label={`${labels.rate} (Manual)`}
+                value={values.rate}
+                onChangeText={(text) => onChange?.({ rate: text.replace(/[^0-9.]/g, '') })}
+                editable={!isFetching}
+                placeholder="Enter override rate"
+                keyboardType="decimal-pad"
+                containerClassName="mb-2.5"
+              />
+            </FormFieldGridItem>
           </FormFieldGrid>
         ) : null}
 

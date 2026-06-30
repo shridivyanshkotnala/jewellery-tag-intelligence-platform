@@ -15,11 +15,11 @@ function DataGridCell({ label, value, showDropdown, onEdit }: DataGridCellProps)
         <Text className="text-xs text-text-muted">{label}</Text>
         {showDropdown ? (
           <ChevronDown size={14} color="#757575" />
-        ) : (
+        ) : onEdit ? (
           <Pressable onPress={onEdit} hitSlop={8}>
             <Pencil size={12} color="#757575" />
           </Pressable>
-        )}
+        ) : null}
       </View>
       <Text className="mt-1.5 text-sm text-text-secondary">{value}</Text>
     </View>

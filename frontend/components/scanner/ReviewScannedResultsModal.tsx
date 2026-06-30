@@ -58,6 +58,7 @@ export function ReviewScannedResultsModal({
   const [showLabourValidation, setShowLabourValidation] = useState(false);
   const [karatDropdownMode, setKaratDropdownMode] = useState(false);
   const [useNetWtFormula, setUseNetWtFormula] = useState(!scanData.netWt);
+  const wasNetWtScanned = useMemo(() => Boolean(scanData.netWt), []);
 
   const stoneDataKey = `${structuredData.diamonds ?? ''}|${structuredData.colorstones ?? ''}`;
 
@@ -161,21 +162,23 @@ export function ReviewScannedResultsModal({
         Scanner Result | Final Tab
       </Text>
 
-      <Pressable
-        onPress={handleNetWtFormulaToggle}
-        className="mb-4 flex-row items-start gap-2.5 rounded-input border border-border bg-surface-muted px-3 py-3"
-      >
-        <View
-          className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
-            useNetWtFormula ? 'border-primary bg-primary' : 'border-border bg-white'
-          }`}
+      {!wasNetWtScanned ? (
+        <Pressable
+          onPress={handleNetWtFormulaToggle}
+          className="mb-4 flex-row items-start gap-2.5 rounded-input border border-border bg-surface-muted px-3 py-3"
         >
-          {useNetWtFormula ? <Check size={12} color="#FFFFFF" /> : null}
-        </View>
-        <Text className="flex-1 text-xs leading-5 text-text-secondary">
-          Use Net Wt = gross wt - 0.2 x (dia wt + colorstone wt)
-        </Text>
-      </Pressable>
+          <View
+            className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
+              useNetWtFormula ? 'border-primary bg-primary' : 'border-border bg-white'
+            }`}
+          >
+            {useNetWtFormula ? <Check size={12} color="#FFFFFF" /> : null}
+          </View>
+          <Text className="flex-1 text-xs leading-5 text-text-secondary">
+            Use Net Wt = gross wt - 0.2 x (dia wt + colorstone wt)
+          </Text>
+        </Pressable>
+      ) : null}
 
       {requiresKaratSelection && !scanData.karat ? (
         <Text className="mb-3 text-xs text-danger-text">

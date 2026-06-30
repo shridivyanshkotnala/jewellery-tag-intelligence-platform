@@ -147,12 +147,6 @@ DIAMOND RATE SPECIAL RULES:
 - Diamond Rate is usually represented by the colour grade letter code (e.g. GH, IJ, EF) — NOT a number.
 - EXCEPTION: If the tag uses a delimited format like "RD\\6.72\\30000", then the last number (30000) IS the numeric diamondRate. In this specific case, extract it as the rate.
 
-*** CRITICAL MANDATORY RULE — IJ DIAMOND RATE ***
-If the colour grade detected is 'IJ' (or 'lJ', 'IJ', '1J' due to OCR), you MUST:
-  1. Set diamondRate = "20000" (fixed trade price for IJ grade — always)
-  2. Set diamondQuality to include "IJ" + the clarity grade (e.g. "IJ VSSI")
-This is non-negotiable. NEVER leave diamondRate empty when colour grade is IJ.
-
 - If colourGrade is GH → set diamondRate = "GH" (string, not number).
 - If colourGrade is EF → set diamondRate = "EF".
 - For all other colour grades, set diamondRate = the colour grade string.

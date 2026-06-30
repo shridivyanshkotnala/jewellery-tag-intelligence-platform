@@ -3,8 +3,6 @@ import { View } from 'react-native';
 
 import { LabourChargeResultSection } from '@/components/scanner/LabourChargeResultSection';
 import { LaborSection, type LaborSectionValues } from '@/components/scanner/LaborSection';
-import { MrpBreakdownCard } from '@/components/scanner/MrpBreakdownCard';
-import { PriceCard } from '@/components/scanner/PriceCard';
 import { RawMaterialGoldSectionInteractive } from '@/components/scanner/RawMaterialGoldSection';
 import { RawMaterialSection } from '@/components/scanner/RawMaterialSection';
 import { StoneTypeRowCard } from '@/components/scanner/StoneTypeRowCard';
@@ -76,12 +74,6 @@ export function ScannerFinalTab({
 
   return (
     <View>
-      <PriceCard
-        label="₹ MRP (Final)"
-        amount={pricing.ultimateMrpDisplay}
-        subtitle={gstNote}
-      />
-
       {editable ? (
         <RawMaterialSection
           scanData={{ ...scanData, karat: selectedKarat }}
@@ -98,7 +90,6 @@ export function ScannerFinalTab({
         <RawMaterialGoldSectionInteractive
           badge="Gold"
           pricing={pricing}
-          onKaratChange={handleKaratChange}
         />
       )}
 
@@ -141,13 +132,6 @@ export function ScannerFinalTab({
       ) : (
         <LabourChargeResultSection pricing={pricing} />
       )}
-
-      <MrpBreakdownCard
-        goldBase={pricing.goldBasePriceDisplay}
-        stoneTotal={formatIndianCurrency(pricing.totalStoneAmount)}
-        labour={pricing.labourDisplay}
-        ultimateMrp={pricing.ultimateMrpDisplay}
-      />
     </View>
   );
 }

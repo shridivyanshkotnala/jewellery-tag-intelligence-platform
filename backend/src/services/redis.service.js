@@ -120,8 +120,26 @@ const invalidateGoldRatesCache = async (businessId) => {
   });
 };
 
-// === MCX API CACHING (60s TTL) ===
-const MCX_TTL = 60;
+const invalidateAllGoldRatesCache = async () => {
+  return runStoreOp(async (backend) => {
+    if (backend === 'memory') {
+      for (const key of memoryStore.keys()) {
+        if (key.startsWith('gold_rates:')) {
+          memoryStore.delete(key);
+        }
+      }
+      return;
+    }
+    // In Redis, delete all keys matching gold_rates:*
+    const keys = await redis.keys('gold_rates:*');
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+  });
+};
+
+// === MCX API CACHING (24h TTL since scheduler updates every 60s) ===
+const MCX_TTL = 24 * 60 * 60;
 
 function mcxKey() {
   return `mcx_gold_live_rate`;
@@ -156,6 +174,7 @@ module.exports = {
   setGoldRatesCache,
   getGoldRatesCache,
   invalidateGoldRatesCache,
+  invalidateAllGoldRatesCache,
   setMcxCache,
   getMcxCache
 };

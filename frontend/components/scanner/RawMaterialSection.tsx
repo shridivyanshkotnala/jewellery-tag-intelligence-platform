@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { ChevronDown, Pencil } from 'lucide-react-native';
 
+import { useFormulaStore } from '@/store/formulaStore';
+
 import { FieldLabel } from '@/components/scanner/FieldLabel';
 import { FormFieldGrid, FormFieldGridItem } from '@/components/scanner/FormFieldGrid';
 import { FormInput } from '@/components/scanner/FormInput';
@@ -37,6 +39,16 @@ export function RawMaterialSection({
 }: RawMaterialSectionProps) {
   const [karatOpen, setKaratOpen] = useState(false);
   const [editingPurity, setEditingPurity] = useState(false);
+
+  const activeFormula = useFormulaStore((s) => s.activeFormula);
+  const formula2Rules = useFormulaStore((s) => s.formula2Rules);
+
+  const displayedKaratOptions = useMemo(() => {
+    if (activeFormula === 'F2' && formula2Rules.length > 0) {
+      return KARAT_DROPDOWN_OPTIONS.filter((option) => formula2Rules.includes(option));
+    }
+    return KARAT_DROPDOWN_OPTIONS;
+  }, [activeFormula, formula2Rules]);
 
   const resolvedKarat = resolveScannedKarat(scanData.karat, scanData.tunch);
   const defaultPurity = resolveKaratPurityPercent(resolvedKarat);
@@ -131,7 +143,7 @@ export function RawMaterialSection({
                 </Pressable>
                 {karatOpen ? (
                   <View className="mb-2 overflow-hidden rounded-input border border-border bg-white">
-                    {KARAT_DROPDOWN_OPTIONS.map((option) => {
+                    {displayedKaratOptions.map((option) => {
                       const purity = resolveKaratPurityPercent(option);
                       return (
                         <Pressable
@@ -160,28 +172,6 @@ export function RawMaterialSection({
                     })}
                   </View>
                 ) : null}
-                <View className="flex-row items-center rounded-input border border-border bg-surface-input px-3.5">
-                  {editingPurity ? (
-                    <TextInput
-                      value={parseNumericLabourValue(scanData.customPurityPercent)?.toString() ?? ''}
-                      onChangeText={handlePurityEdit}
-                      onBlur={() => setEditingPurity(false)}
-                      autoFocus
-                      keyboardType="decimal-pad"
-                      placeholder={defaultPurity !== null ? String(defaultPurity) : '75'}
-                      placeholderTextColor={Colors.placeholder}
-                      className="flex-1 py-3 text-sm text-text-primary"
-                    />
-                  ) : (
-                    <Text className="flex-1 py-3 text-sm text-text-primary">{purityDisplay}</Text>
-                  )}
-                  <Pressable onPress={() => setEditingPurity(true)} hitSlop={8}>
-                    <Pencil size={14} color="#757575" />
-                  </Pressable>
-                </View>
-                <Text className="mt-1 text-[10px] leading-4 text-text-muted">
-                  Purity % from backend; edit to override (e.g. 74.9%)
-                </Text>
               </>
             ) : (
               <View className="min-h-11 justify-center rounded-input border border-border bg-surface-input px-3.5">

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -171,6 +171,17 @@ export default function MarketRatesScreen() {
       if (allowed && activeTab === 'gold') void loadRates();
     }, [allowed, activeTab, loadRates]),
   );
+
+  useEffect(() => {
+    if (!allowed || activeTab !== 'gold') return;
+    
+    // Auto-refresh the dashboard every 60 seconds to pull the latest MCX rates
+    const intervalId = setInterval(() => {
+      void loadRates();
+    }, 60000);
+    
+    return () => clearInterval(intervalId);
+  }, [allowed, activeTab, loadRates]);
 
   if (!allowed) return null;
 
