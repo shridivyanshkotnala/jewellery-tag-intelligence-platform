@@ -11,7 +11,7 @@ export function formatMcxLiveRate(mcxLiveRate: number): string {
 }
 
 export function calculateBaseGoldRate(mcxLiveRate: number, purity: number): number {
-  return Math.round(mcxLiveRate * (purity / 100));
+  return Math.round(mcxLiveRate * (purity / 99.9));
 }
 
 export function applyGoldIncrease(

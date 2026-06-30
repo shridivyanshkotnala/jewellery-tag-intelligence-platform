@@ -63,7 +63,7 @@ const getLiveGoldRates = async (businessId) => {
 
   // 7. Calculate Final Live Rates for Each Row
   const computedKaratRates = karatRows.map(row => {
-    const basePurityRate = baseRate * (row.purity / 100);
+    const basePurityRate = baseRate * (row.purity / 99.9);
     let finalRate = basePurityRate;
 
     if (row.increaseByAmount && !isNaN(row.increaseByAmount)) {
@@ -75,9 +75,9 @@ const getLiveGoldRates = async (businessId) => {
     }
 
     // Compute all three rates explicitly for the UI dashboard
-    const mcxRate = Math.round(mcxLiveRate * (row.purity / 100));
-    const cashRate = Math.round(cashFinalRate * (row.purity / 100));
-    const rtgsRate = Math.round(rtgsFinalRate * (row.purity / 100));
+    const mcxRate = Math.round(mcxLiveRate * (row.purity / 99.9));
+    const cashRate = Math.round(cashFinalRate * (row.purity / 99.9));
+    const rtgsRate = Math.round(rtgsFinalRate * (row.purity / 99.9));
 
     return {
       _id: row._id,
