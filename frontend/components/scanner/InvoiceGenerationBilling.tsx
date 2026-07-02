@@ -174,13 +174,15 @@ function SummaryRow({
   label,
   value,
   emphasized = false,
+  isLast = false,
 }: {
   label: string;
   value: string;
   emphasized?: boolean;
+  isLast?: boolean;
 }) {
   return (
-    <View className={`flex-row items-center justify-between py-2.5 ${emphasized ? '' : 'border-b border-white/15'}`}>
+    <View className={`flex-row items-center justify-between py-2.5 ${emphasized || isLast ? '' : 'border-b border-white/15'}`}>
       <Text className={`text-sm ${emphasized ? 'font-bold text-white' : 'text-white/75'}`}>
         {label}
       </Text>
@@ -402,12 +404,6 @@ export function InvoiceGenerationBilling({
             />
             <ReadOnlyRow label="GSTIN Number" value={formatProfileValue(profile.gstNumber, '—')} />
           </View>
-
-          <View className={`rounded-xl border border-border bg-surface-muted p-4 ${isWideLayout ? 'flex-1' : 'w-full'}`}>
-            <SectionHeader title="Invoice Metadata" icon={<FileText size={14} color="#1A332E" />} />
-            <MetadataPill label="Invoice Number" value={invoiceNumber} />
-            <MetadataPill label="Invoice Date & Time" value={invoiceDateTime} />
-          </View>
         </View>
 
         <View className="rounded-xl border border-border bg-white p-4">
@@ -426,6 +422,7 @@ export function InvoiceGenerationBilling({
                   multiline
                 />
                 <ReadOnlyRow label="Customer Email" value={customer.customerEmail || '—'} />
+                <ReadOnlyRow label="GSTIN Number" value={customer.customerGstin || '—'} />
               </View>
             </View>
           ) : (
@@ -477,6 +474,13 @@ export function InvoiceGenerationBilling({
                   keyboardType="email-address"
                   autoCapitalize="none"
                   error={emailError}
+                />
+                <ValidatedInput
+                  label="GSTIN Number"
+                  value={customer.customerGstin}
+                  onChangeText={(text) => updateCustomer({ customerGstin: sanitizeGstinInput(text) })}
+                  placeholder="Optional GSTIN"
+                  autoCapitalize="characters"
                 />
               </View>
             </View>
@@ -549,7 +553,7 @@ export function InvoiceGenerationBilling({
               <View className="px-4 py-3">
                 <SummaryRow label="Subtotal" value={formatIndianCurrency(subtotal)} />
                 {readOnly ? <SummaryRow label="GST Rate (%)" value={`${gstRate}%`} /> : null}
-                <SummaryRow label="GST Amount" value={formatIndianCurrency(gstAmount)} />
+                <SummaryRow label="GST Amount" value={formatIndianCurrency(gstAmount)} isLast />
               </View>
               <View className="border-t border-white/20 bg-primary-dark px-4 py-3">
                 <SummaryRow label="Grand Total" value={formatIndianCurrency(grandTotal)} emphasized />

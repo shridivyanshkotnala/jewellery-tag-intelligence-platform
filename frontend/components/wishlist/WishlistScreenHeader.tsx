@@ -17,17 +17,7 @@ export function WishlistScreenHeader({ onClearWishlist }: WishlistScreenHeaderPr
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.iconBtn}>
           <X size={22} color={Colors.textPrimary} />
         </Pressable>
-        <Text style={styles.brand} numberOfLines={1}>
-          Pratham International...
-        </Text>
-        <View style={styles.topActions}>
-          <Pressable hitSlop={8} style={styles.iconBtn}>
-            <SlidersHorizontal size={18} color={Colors.textPrimary} />
-          </Pressable>
-          <Pressable hitSlop={8} style={styles.iconBtn}>
-            <MoreVertical size={18} color={Colors.textPrimary} />
-          </Pressable>
-        </View>
+       
       </View>
 
       <View style={styles.titleRow}>
@@ -43,45 +33,51 @@ export function WishlistScreenHeader({ onClearWishlist }: WishlistScreenHeaderPr
 const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl, // Increase spacing between top bar and title
   },
   iconBtn: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.background, // Subtle background for icon buttons
+    borderRadius: 18,
   },
   brand: {
     flex: 1,
-    marginHorizontal: Spacing.sm,
-    fontSize: 14,
-    fontWeight: '600',
+    marginHorizontal: Spacing.md,
+    fontSize: 15,
+    fontWeight: '700',
     color: Colors.textPrimary,
     textAlign: 'center',
   },
   topActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 32, // Make it a bit larger and prominent
+    fontWeight: '800',
     color: Colors.textPrimary,
+    letterSpacing: -0.5,
   },
   clearLink: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.textSecondary,
+    marginBottom: 4, // Align text baseline with the large title
   },
 });

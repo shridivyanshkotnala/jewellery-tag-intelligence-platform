@@ -72,13 +72,6 @@ console.log("==============================");
     // Add backward compatibility for frontend by flattening the first stone
     if (parsedData.structuredData) {
       if (parsedData.structuredData.diamonds && parsedData.structuredData.diamonds.length > 0) {
-        // Explicitly Enforce IJ Diamond Rate Rule to fix LLM failures
-        parsedData.structuredData.diamonds.forEach(dia => {
-          const colorVal = dia.color?.value;
-          if (colorVal && String(colorVal).toUpperCase().includes('IJ')) {
-             dia.rate = { value: '20000', confidence: 100 };
-          }
-        });
 
         const firstDia = parsedData.structuredData.diamonds[0];
         parsedData.structuredData.diamondWeight = firstDia.weight || { value: '', confidence: 0 };

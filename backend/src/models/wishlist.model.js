@@ -14,12 +14,10 @@ const wishlistSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    // Client-generated unique id (wl-<timestamp>-<random>) so the
-    // frontend can reference the same item without an extra lookup.
+  
     itemId: {
       type: String,
       required: true,
-      unique: true,
     },
     title: {
       type: String,
@@ -47,8 +45,7 @@ const wishlistSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // Complete snapshot: scanData, structuredData, selectedType,
-    // diamonds[], colorstones[], pricing fields
+ 
     snapshot: {
       type: mongoose.Schema.Types.Mixed,
       required: true,
@@ -59,7 +56,8 @@ const wishlistSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for efficient per-business lookups
+// Compound indices for efficient lookups and uniqueness per business
 wishlistSchema.index({ businessId: 1, createdAt: -1 });
+wishlistSchema.index({ businessId: 1, itemId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Wishlist', wishlistSchema);

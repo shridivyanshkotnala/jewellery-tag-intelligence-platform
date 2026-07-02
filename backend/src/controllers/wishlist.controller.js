@@ -22,9 +22,9 @@ const addToWishlist = async (req, res, next) => {
       });
     }
 
-    // Upsert by itemId so duplicate taps are idempotent
+    // Upsert by itemId + businessId so duplicate taps are idempotent per business
     const item = await Wishlist.findOneAndUpdate(
-      { itemId },
+      { itemId, businessId },
       {
         $setOnInsert: {
           businessId,
@@ -58,6 +58,7 @@ const getWishlist = async (req, res, next) => {
     }
 
     const items = await Wishlist.find({ businessId }).sort({ createdAt: -1 }).lean();
+    console.log('Fetching wishlist for businessId:', businessId, 'Found:', items.length);
 
     sendSuccess(res, { items });
   } catch (err) {

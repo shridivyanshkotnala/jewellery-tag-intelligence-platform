@@ -14,13 +14,10 @@ interface WishlistCardProps {
 export function WishlistCard({ item, onPress, onDelete }: WishlistCardProps) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      {/* ─── Header row: title + tag code + delete ─── */}
+      {/* ─── Header row: title + delete ─── */}
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
           <Text style={styles.title}>{item.title}</Text>
-          <View style={styles.tagPill}>
-            <Text style={styles.tagText}>{item.tagCode}</Text>
-          </View>
         </View>
         <Pressable
           onPress={(e) => {
@@ -34,15 +31,17 @@ export function WishlistCard({ item, onPress, onDelete }: WishlistCardProps) {
         </Pressable>
       </View>
 
-      {/* ─── Price badge ─── */}
-      <View style={styles.priceBadge}>
-        <Text style={styles.priceText}>{item.priceBadge}</Text>
-      </View>
+      <View style={styles.bottomRow}>
+        {/* ─── Price badge ─── */}
+        <View style={styles.priceBadge}>
+          <Text style={styles.priceText}>{item.priceBadge}</Text>
+        </View>
 
-      {/* ─── Scan timestamp ─── */}
-      <Text style={styles.timestamp}>
-        {formatWishlistTimestamp(item.scanTimestamp || item.addedAt)}
-      </Text>
+        {/* ─── Scan timestamp ─── */}
+        <Text style={styles.timestamp}>
+          {formatWishlistTimestamp(item.scanTimestamp || item.addedAt)}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -52,23 +51,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radius.card,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    borderColor: '#E8E8E8', // Explicitly visible subtle border
+    padding: Spacing.xl, // Increased padding
+    marginBottom: Spacing.lg,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3, // Stronger elevation for Android
   },
   cardPressed: {
-    opacity: 0.85,
+    opacity: 0.7,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   titleGroup: {
     flexDirection: 'row',
@@ -83,37 +82,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
   },
-  tagPill: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-  },
+
   deleteBtn: {
-    padding: 4,
+    padding: 6,
+    backgroundColor: Colors.dangerBg,
+    borderRadius: 8,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   priceBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: Colors.primary,
     borderRadius: Radius.badge,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginBottom: Spacing.sm,
+    paddingVertical: 10,
+  
   },
   priceText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: Colors.white,
   },
   timestamp: {
-    alignSelf: 'flex-end',
     fontSize: 11,
+    fontWeight: '500',
     color: Colors.textMuted,
     letterSpacing: 0.2,
   },

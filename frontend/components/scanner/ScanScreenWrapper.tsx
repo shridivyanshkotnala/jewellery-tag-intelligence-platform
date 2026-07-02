@@ -29,7 +29,7 @@ export function ScanScreenWrapper({
       <ScreenBackHeader title={title} onBack={onBack} />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-screen pb-32 pt-1"
+        contentContainerClassName={`px-screen pt-1 ${footer ? 'pb-44' : 'pb-32'}`}
         showsVerticalScrollIndicator={false}
       >
         {children}

@@ -140,9 +140,6 @@ export default function UndetectedAbbreviationScreen() {
         <View className="absolute inset-0 bg-black/50" />
         <SafeAreaView className="flex-1" edges={['top']}>
           <ScreenBackHeader iconColor="#9E9E9E" onBack={() => router.back()} />
-          <View className="mt-3">
-            <ItemSelectedBadge />
-          </View>
 
           <ScrollView
             className="flex-1"

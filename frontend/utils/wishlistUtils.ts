@@ -13,15 +13,11 @@ import {
 } from '@/utils/stoneSequenceUtils';
 import { resolveScannedKarat } from '@/utils/formulaUtils';
 
-/** Deterministic ID from tagCode — same scan always produces the same wishlist entry. */
+/** Unique ID for each wishlist addition so variants of the same tag can be saved. */
 function generateWishlistId(tagCode: string): string {
-  // Simple djb2-style hash → stable string key
-  let hash = 5381;
-  for (let i = 0; i < tagCode.length; i++) {
-    hash = ((hash << 5) + hash) ^ tagCode.charCodeAt(i);
-    hash = hash >>> 0; // keep unsigned 32-bit
-  }
-  return `wl-${tagCode.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${hash.toString(16)}`;
+  const hashStr = tagCode.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const uniqueId = Math.random().toString(36).substring(2, 9);
+  return `wl-${hashStr}-${Date.now()}-${uniqueId}`;
 }
 
 export function buildTagCode(selectedType: JewelleryType, sku?: string): string {

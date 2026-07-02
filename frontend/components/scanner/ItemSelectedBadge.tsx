@@ -15,9 +15,9 @@ export function ItemSelectedBadge() {
       <Text className="text-sm text-white">
         Item Selected : <Text className="font-semibold text-accent-gold">{selectedType}</Text>
       </Text>
-      {sideLabel ? (
-        <Text className="mt-1 text-center text-xs text-white/80">Scanning: {sideLabel}</Text>
-      ) : null}
+      {/* {sideLabel ? ( */}
+      <Text className="mt-1 text-center text-xs text-white/80">Scanning: {sideLabel}</Text>
+      {/* // ) : null} */}
     </View>
   );
 }

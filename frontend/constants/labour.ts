@@ -1,9 +1,8 @@
-export type LabourChargeUnit = 'Per Gram' | 'Per 10 Gram' | 'Per 1 Gram';
+export type LabourChargeUnit = 'Per Gram' | 'Per 10 Gram';
 
 export const DEFAULT_LABOUR_CHARGE_UNITS: LabourChargeUnit[] = [
   'Per Gram',
-  'Per 10 Gram',
-  'Per 1 Gram',
+  'Per 10 Gram'
 ];
 
 export const DEFAULT_LABOUR_CHARGE_UNIT: LabourChargeUnit = 'Per Gram';

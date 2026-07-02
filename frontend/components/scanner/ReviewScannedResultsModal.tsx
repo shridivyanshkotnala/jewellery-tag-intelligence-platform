@@ -159,7 +159,7 @@ export function ReviewScannedResultsModal({
   return (
     <View className="rounded-[20px] bg-white px-screen py-5 shadow-lg">
       <Text className="mb-4 text-lg font-bold text-text-primary">
-        Scanner Result | Final Tab
+        Scanner Review Result 
       </Text>
 
       {!wasNetWtScanned ? (

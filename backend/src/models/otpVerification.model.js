@@ -28,11 +28,11 @@ const otpVerificationSchema = new mongoose.Schema({
     required: true
   }
 }, {
-  timestamps: true, // createdAt and updatedAt
+  timestamps: true, 
   collection: 'otp_verifications'
 });
 
-// TTL index to automatically delete expired OTP documents
+
 otpVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('OtpVerification', otpVerificationSchema);
