@@ -64,8 +64,28 @@ export function LabourRateEditModal({
           <Text style={styles.modalTitle}>Edit Labour Charges</Text>
           <Text style={styles.modalHint}>Fill only one field — amount or gold purity %.</Text>
 
+          <View style={[styles.fieldCard, percentageDisabled && styles.fieldDisabled]}>
+            <Text style={styles.caseTitle}>Case I — % Purity Mode</Text>
+            <Text style={styles.caseHint}>Custom % overrides pure wt; labour charge prints as ₹0</Text>
+            <View style={styles.amountRow}>
+              <TextInput
+                value={percentage}
+                onChangeText={(text) => onPercentageChange(text.replace(/[^\d.]/g, ''))}
+                placeholder="e.g. 71"
+                editable={!percentageDisabled}
+                placeholderTextColor={Colors.placeholder}
+                keyboardType="decimal-pad"
+                style={styles.input}
+              />
+            </View>
+            {errors.percentage ? <Text style={styles.errorText}>{errors.percentage}</Text> : null}
+          </View>
+
+          <OrDivider />
+
           <View style={[styles.fieldCard, amountDisabled && styles.fieldDisabled]}>
-            <Text style={styles.fieldLabel}>Enter Amount</Text>
+            <Text style={styles.caseTitle}>Case II — Fixed Amount Mode</Text>
+            <Text style={styles.caseHint}>Labour = Net wt (gms) × rate per gram</Text>
             <View style={styles.amountRow}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
@@ -79,22 +99,6 @@ export function LabourRateEditModal({
               />
             </View>
             {errors.amount ? <Text style={styles.errorText}>{errors.amount}</Text> : null}
-          </View>
-
-          <OrDivider />
-
-          <View style={[styles.fieldCard, percentageDisabled && styles.fieldDisabled]}>
-            <Text style={styles.fieldLabel}>Set a fixed gold % purity amount</Text>
-            <TextInput
-              value={percentage}
-              onChangeText={(text) => onPercentageChange(text.replace(/[^\d.]/g, ''))}
-              placeholder="e.g. 71"
-              editable={!percentageDisabled}
-              placeholderTextColor={Colors.placeholder}
-              keyboardType="decimal-pad"
-              style={styles.input}
-            />
-            {errors.percentage ? <Text style={styles.errorText}>{errors.percentage}</Text> : null}
           </View>
 
           <View style={styles.modalActions}>
@@ -142,10 +146,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   fieldDisabled: { opacity: 0.45 },
-  fieldLabel: {
-    fontSize: 13,
+  caseTitle: {
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  caseHint: {
+    fontSize: 10,
+    lineHeight: 16,
+    color: Colors.textMuted,
     marginBottom: Spacing.sm,
   },
   amountRow: {

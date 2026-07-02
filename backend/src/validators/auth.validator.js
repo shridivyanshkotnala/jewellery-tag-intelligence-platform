@@ -39,6 +39,10 @@ const employeeLoginSchema = Joi.object({
   employeeId: Joi.string().required(),
   password: Joi.string().required(),
 });
+const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: Joi.string().min(8).required(),
+});
 
 module.exports = {
   gstVerifySchema,
@@ -48,4 +52,5 @@ module.exports = {
   createPasswordSchema,
   loginSchema,
   employeeLoginSchema,
+  changePasswordSchema,
 };

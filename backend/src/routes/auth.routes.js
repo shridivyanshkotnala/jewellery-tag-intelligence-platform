@@ -9,8 +9,10 @@ const {
   createPasswordSchema,
   loginSchema,
   employeeLoginSchema,
+  changePasswordSchema,
 } = require('../validators/auth.validator');
 const { gstRateLimiter } = require('../middleware/rateLimiter');
+const { authenticateJWT } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -23,5 +25,6 @@ router.post('/business/verify-email-otp', validate(verifyOtpSchema), authControl
 router.post('/business/create-password', validate(createPasswordSchema), authController.createPassword);
 router.post('/business/login', validate(loginSchema), authController.login);
 router.post('/employee/login', validate(employeeLoginSchema), authController.loginEmployee);
+router.post('/change-password', authenticateJWT, validate(changePasswordSchema), authController.changePassword);
 
 module.exports = router;

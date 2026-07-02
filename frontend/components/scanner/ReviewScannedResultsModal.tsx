@@ -11,7 +11,7 @@ import {
   isKaratWhitelisted,
   resolveScannedKarat,
 } from '@/utils/formulaUtils';
-import { validateLabour } from '@/utils/labourUtils';
+
 import {
   parseStoneArraysFromStructuredData,
   resolveStoneEntryArrays,
@@ -25,7 +25,6 @@ interface ReviewScannedResultsModalProps {
   jewelleryType: 'Gold' | 'Diamond';
   onFieldChange: (field: keyof ScanItemData, value: string) => void;
   onStoneEntriesChange: (diamonds: StoneEntry[], colorstones: StoneEntry[]) => void;
-  onLaborChange: (values: Partial<ScanItemData>) => void;
   onReScan: () => void;
   onConfirm: () => void;
   confirming?: boolean;
@@ -37,7 +36,6 @@ export function ReviewScannedResultsModal({
   jewelleryType,
   onFieldChange,
   onStoneEntriesChange,
-  onLaborChange,
   onReScan,
   onConfirm,
   confirming = false,
@@ -55,7 +53,7 @@ export function ReviewScannedResultsModal({
     parsedStones.colorstones,
   );
   const [rateErrors, setRateErrors] = useState<Record<number, boolean>>({});
-  const [showLabourValidation, setShowLabourValidation] = useState(false);
+
   const [karatDropdownMode, setKaratDropdownMode] = useState(false);
   const [useNetWtFormula, setUseNetWtFormula] = useState(!scanData.netWt);
   const wasNetWtScanned = useMemo(() => Boolean(scanData.netWt), []);
@@ -75,7 +73,6 @@ export function ReviewScannedResultsModal({
   }, [stoneDataKey, jewelleryType, structuredData, scanData]);
 
   const hasRateError = Object.values(rateErrors).some(Boolean);
-  const labourError = validateLabour(scanData);
   const canConfirm = Boolean(scanData.grossWt.trim()) && !hasRateError;
 
   useEffect(() => {
@@ -147,10 +144,6 @@ export function ReviewScannedResultsModal({
   };
 
   const handleConfirm = () => {
-    if (labourError) {
-      setShowLabourValidation(true);
-      return;
-    }
     onConfirm();
   };
 
@@ -195,9 +188,7 @@ export function ReviewScannedResultsModal({
         editable
         onFieldChange={onFieldChange}
         onStoneEntryChange={handleStoneEntryChange}
-        onLaborChange={onLaborChange}
         onRateErrorChange={handleStoneRateErrorChange}
-        showLabourValidation={showLabourValidation || Boolean(labourError)}
       />
 
       <View className="mt-2 flex-row gap-3">

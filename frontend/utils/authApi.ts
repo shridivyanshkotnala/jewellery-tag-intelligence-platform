@@ -352,3 +352,28 @@ export async function loginEmployeeByPhone(phone: string, password: string): Pro
     };
   }
 }
+
+export async function changeUserPassword(currentPassword: string, newPassword: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const response = await apiRequest<ApiEnvelope<Record<string, unknown>>>('/auth/change-password', {
+      method: 'POST',
+      body: { currentPassword, newPassword },
+    });
+    const unwrapped = unwrapEnvelope(response);
+    if (!isSuccessfulResponse(response, unwrapped)) {
+      return {
+        success: false,
+        error: resolveApiMessage(response, unwrapped, 'Failed to change password.'),
+      };
+    }
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof ApiError ? error.message : 'Failed to change password.',
+    };
+  }
+}

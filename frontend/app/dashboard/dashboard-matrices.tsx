@@ -17,8 +17,6 @@ import { BottomNav } from '@/components/dashboard/BottomNav';
 import { MatrixCheckboxRow } from '@/components/settings/MatrixCheckboxRow';
 import {
   GOLD_MATRIX_SECTIONS,
-  SILVER_MATRIX_SECTION,
-  WEIGHT_ACCESS_ROWS,
   type MatrixKey,
 } from '@/constants/dashboardMatrices';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -43,7 +41,7 @@ export default function DashboardMatricesScreen() {
     setDraft((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleUpdate = async () => {
+  const handleSave = async () => {
     setSaving(true);
     try {
       applyValues(draft);
@@ -51,6 +49,10 @@ export default function DashboardMatricesScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleRestore = () => {
+    setDraft(storedValues);
   };
 
   return (
@@ -98,20 +100,7 @@ export default function DashboardMatricesScreen() {
               </View>
             ))}
 
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeaderText}>{SILVER_MATRIX_SECTION.sectionLabel}</Text>
-              </View>
-              {SILVER_MATRIX_SECTION.rows.map((row, index) => (
-                <MatrixCheckboxRow
-                  key={row.key}
-                  label={row.label}
-                  checked={draft[row.key]}
-                  onToggle={() => toggle(row.key)}
-                  showDivider={index < SILVER_MATRIX_SECTION.rows.length - 1}
-                />
-              ))}
-            </View>
+
 
             <View style={styles.permissionSection}>
               <MatrixCheckboxRow
@@ -122,31 +111,28 @@ export default function DashboardMatricesScreen() {
               />
             </View>
 
-            <View style={styles.accessBox}>
-              {WEIGHT_ACCESS_ROWS.map((row, index) => (
-                <MatrixCheckboxRow
-                  key={row.key}
-                  label={row.label}
-                  checked={draft[row.key]}
-                  onToggle={() => toggle(row.key)}
-                  variant="dark"
-                  showDivider={index < WEIGHT_ACCESS_ROWS.length - 1}
-                />
-              ))}
+            <View style={styles.actionButtons}>
+              <Pressable
+                onPress={handleRestore}
+                disabled={saving}
+                style={[styles.restoreBtn, saving && styles.btnDisabled]}
+              >
+                <Text style={styles.restoreBtnText}>Restore</Text>
+              </Pressable>
+              
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={saving}
+                activeOpacity={0.9}
+                style={[styles.saveBtn, saving && styles.btnDisabled]}
+              >
+                {saving ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.saveBtnText}>Save</Text>
+                )}
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              onPress={handleUpdate}
-              disabled={saving}
-              activeOpacity={0.9}
-              style={[styles.updateBtn, saving && styles.updateBtnDisabled]}
-            >
-              {saving ? (
-                <ActivityIndicator color={Colors.white} />
-              ) : (
-                <Text style={styles.updateBtnText}>Update</Text>
-              )}
-            </TouchableOpacity>
           </ScrollView>
         </View>
       </View>
@@ -250,26 +236,38 @@ const styles = StyleSheet.create({
   permissionSection: {
     marginTop: 16,
   },
-  accessBox: {
-    backgroundColor: BUTTON_GREEN,
-    borderRadius: Radius.input,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    marginTop: 16,
+  actionButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: 24,
   },
-  updateBtn: {
+  restoreBtn: {
+    flex: 1,
     height: Spacing.buttonHeight,
-    width: '100%',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  restoreBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  saveBtn: {
+    flex: 1,
+    height: Spacing.buttonHeight,
     backgroundColor: BUTTON_GREEN,
     borderRadius: Radius.button,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
   },
-  updateBtnDisabled: {
+  btnDisabled: {
     opacity: 0.7,
   },
-  updateBtnText: {
+  saveBtnText: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,

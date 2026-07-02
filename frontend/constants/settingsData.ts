@@ -31,12 +31,6 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
     route: '/dashboard/business-profile',
   },
   {
-    id: 'formulae',
-    title: 'Manage Formulae',
-    subtitle: 'Create, Edit and Delete Formulae',
-    icon: Sigma,
-  },
-  {
     id: 'matrices',
     title: 'Home Dashboard Matrices Control',
     subtitle: 'Control the visibility of Home Screen Matrices',
@@ -71,19 +65,7 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
     icon: MoreHorizontal,
     route: '/dashboard/password-manager',
   },
-  {
-    id: 'tunch',
-    title: 'Tunch (Purity) Control',
-    subtitle: 'Manage and Edit Tunch (Purity)',
-    icon: Type,
-    route: '/dashboard/purity-control',
-  },
-  {
-    id: 'invoice',
-    title: 'Invoice Formats',
-    subtitle: 'Manage and access Invoice Formats',
-    icon: FileText,
-  },
+
   {
     id: 'subscription',
     title: 'Subscription Manager',

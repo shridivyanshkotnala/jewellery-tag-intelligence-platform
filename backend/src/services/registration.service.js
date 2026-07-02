@@ -211,6 +211,30 @@ const loginEmployee = async (employeeId, password) => {
   };
 };
 
+const changePassword = async (userId, role, currentPassword, newPassword) => {
+  let user;
+  if (role === 'EMP') {
+    const Employee = require('../models/employee.model');
+    user = await Employee.findById(userId);
+  } else {
+    user = await BusinessUser.findById(userId);
+  }
+
+  if (!user || !user.isActive) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!isMatch) {
+    throw new Error('INCORRECT_CURRENT_PASSWORD');
+  }
+
+  user.passwordHash = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  return { success: true, message: 'Password updated successfully' };
+};
+
 module.exports = {
   confirmGst,
   submitContactDetails,
@@ -219,4 +243,5 @@ module.exports = {
   createPassword,
   login,
   loginEmployee,
+  changePassword,
 };

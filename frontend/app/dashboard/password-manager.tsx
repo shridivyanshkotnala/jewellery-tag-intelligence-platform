@@ -1,123 +1,160 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, Lock } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackgroundPattern } from '@/components/ui/BackgroundPattern';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { BottomNav } from '@/components/dashboard/BottomNav';
+import { screenStyles } from '@/constants/screenLayout';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { changeUserPassword } from '@/utils/authApi';
 
-const ACCENT_GOLD = '#D4C19C';
-const BUTTON_GREEN = '#1B3022';
+const BUTTON_GREEN = '#1B2E26';
 
 export default function PasswordManagerScreen() {
   const router = useRouter();
-
-  const [oldPassword, setOldPassword] = useState('Old Password123');
+  
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('Password@123');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleUpdate = async () => {
-    setUpdating(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      router.back();
-    } finally {
-      setUpdating(false);
+    setError(null);
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters long');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    const result = await changeUserPassword(currentPassword, newPassword);
+    setLoading(false);
+
+    if (result.success) {
+      Alert.alert('Success', 'Your password has been updated successfully', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } else {
+      setError(result.error || 'Failed to update password');
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={screenStyles.safeArea} edges={['top']}>
       <BackgroundPattern />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={screenStyles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
-              <ChevronLeft size={24} color={Colors.textPrimary} strokeWidth={2} />
-            </Pressable>
-            <Text style={styles.headerTitle}>Password Manager</Text>
+        <PageHeader title="Password" subtitle="Settings → Password Manager" />
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrap}>
+              <Lock size={20} color={BUTTON_GREEN} />
+            </View>
+            <View style={styles.cardHeaderContent}>
+              <Text style={styles.cardTitle}>Change Password</Text>
+              <Text style={styles.cardSubtitle}>Ensure your account is using a long, random password to stay secure.</Text>
+            </View>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Old Password</Text>
-            <TextInput
-              value={oldPassword}
-              onChangeText={setOldPassword}
-              placeholder="Old Password"
-              placeholderTextColor={Colors.placeholder}
-              secureTextEntry={false}
-              autoCapitalize="none"
-              style={styles.input}
-            />
-            <Pressable hitSlop={8} style={styles.forgotWrap}>
-              <Text style={styles.forgotText}>Forgot Old Password ?</Text>
-            </Pressable>
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-            <Text style={styles.label}>New Password</Text>
-            <TextInput
-              value={newPassword}
-              onChangeText={setNewPassword}
-              placeholder="New Password"
-              placeholderTextColor={Colors.placeholder}
-              secureTextEntry={false}
-              autoCapitalize="none"
-              style={styles.input}
-            />
-
-            <Text style={styles.label}>Confirm Password</Text>
-            <View style={styles.inputRow}>
-              <TextInput
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="••••••••"
-                placeholderTextColor={Colors.placeholder}
-                secureTextEntry={!showConfirm}
-                autoCapitalize="none"
-                style={styles.inputField}
-              />
-              <Pressable onPress={() => setShowConfirm((v) => !v)} hitSlop={8}>
-                <EyeOff size={20} color={Colors.textMuted} />
-              </Pressable>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Current Password</Text>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter current password"
+                  placeholderTextColor={Colors.textMuted}
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry={!showCurrent}
+                  autoCapitalize="none"
+                />
+                <Pressable onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeBtn}>
+                  {showCurrent ? <EyeOff size={20} color={Colors.textMuted} /> : <Eye size={20} color={Colors.textMuted} />}
+                </Pressable>
+              </View>
             </View>
 
-            <TouchableOpacity
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>New Password</Text>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter new password"
+                  placeholderTextColor={Colors.textMuted}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showNew}
+                  autoCapitalize="none"
+                />
+                <Pressable onPress={() => setShowNew(!showNew)} style={styles.eyeBtn}>
+                  {showNew ? <EyeOff size={20} color={Colors.textMuted} /> : <Eye size={20} color={Colors.textMuted} />}
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm New Password</Text>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Re-enter new password"
+                  placeholderTextColor={Colors.textMuted}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirm}
+                  autoCapitalize="none"
+                />
+                <Pressable onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeBtn}>
+                  {showConfirm ? <EyeOff size={20} color={Colors.textMuted} /> : <Eye size={20} color={Colors.textMuted} />}
+                </Pressable>
+              </View>
+            </View>
+
+            <Pressable
               onPress={handleUpdate}
-              disabled={updating}
-              activeOpacity={0.9}
-              style={[styles.updateBtn, updating && styles.updateBtnDisabled]}
+              disabled={loading}
+              style={[styles.saveBtn, loading && styles.saveBtnDisabled]}
             >
-              {updating ? (
+              {loading ? (
                 <ActivityIndicator color={Colors.white} />
               ) : (
-                <Text style={styles.updateBtnText}>Update Password</Text>
+                <Text style={styles.saveBtnText}>Update Password</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </ScrollView>
 
       <BottomNav activeRoute="home" />
     </SafeAreaView>
@@ -125,90 +162,105 @@ export default function PasswordManagerScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  scroll: {
     flex: 1,
+  },
+  card: {
+    marginHorizontal: Spacing.screenHorizontal,
+    marginTop: Spacing.xl,
     backgroundColor: Colors.white,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  flex: {
+  cardHeader: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  cardHeaderContent: {
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: 120,
-  },
-  header: {
-    paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  backBtn: {
-    width: 32,
-    height: 32,
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E8F0EC',
+    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
-  headerTitle: {
-    fontSize: 28,
+  cardTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: Colors.textPrimary,
-    lineHeight: 34,
+    lineHeight: 24,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 2,
+    paddingRight: 8,
   },
   form: {
-    paddingHorizontal: Spacing.screenHorizontal,
-    paddingTop: 16,
+    gap: Spacing.lg,
+  },
+  errorBox: {
+    backgroundColor: '#FFF5F5',
+    borderWidth: 1,
+    borderColor: '#F5C6C2',
+    padding: Spacing.md,
+    borderRadius: Radius.input,
+  },
+  errorText: {
+    color: '#D93025',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  inputGroup: {
+    gap: Spacing.xs,
   },
   label: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  input: {
-    minHeight: Spacing.inputHeight,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.input,
-    backgroundColor: Colors.white,
-    paddingHorizontal: 16,
-    fontSize: 16,
+    fontSize: 13,
+    fontWeight: '600',
     color: Colors.textPrimary,
   },
-  forgotWrap: {
-    alignSelf: 'flex-end',
-    marginTop: 8,
-  },
-  forgotText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: ACCENT_GOLD,
-  },
-  inputRow: {
-    minHeight: Spacing.inputHeight,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.input,
-    backgroundColor: Colors.white,
-    paddingHorizontal: 16,
+  inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.input,
+    backgroundColor: '#F8F8F8',
   },
-  inputField: {
+  input: {
     flex: 1,
-    fontSize: 16,
+    height: 48,
+    paddingHorizontal: Spacing.md,
+    fontSize: 15,
     color: Colors.textPrimary,
-    paddingVertical: 12,
   },
-  updateBtn: {
+  eyeBtn: {
+    padding: Spacing.md,
+  },
+  saveBtn: {
     height: Spacing.buttonHeight,
     backgroundColor: BUTTON_GREEN,
     borderRadius: Radius.button,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 32,
+    marginTop: Spacing.md,
   },
-  updateBtnDisabled: {
+  saveBtnDisabled: {
     opacity: 0.7,
   },
-  updateBtnText: {
+  saveBtnText: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,

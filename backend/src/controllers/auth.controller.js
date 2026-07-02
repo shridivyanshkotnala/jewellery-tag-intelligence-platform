@@ -102,6 +102,17 @@ const loginEmployee = async (req, res, next) => {
   }
 };
 
+const changePassword = async (req, res, next) => {
+  try {
+    const { userId, role } = req.user;
+    const { currentPassword, newPassword } = req.body;
+    const data = await registrationService.changePassword(userId, role, currentPassword, newPassword);
+    sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   verifyGst,
   confirmGst,
@@ -112,4 +123,5 @@ module.exports = {
   createPassword,
   login,
   loginEmployee,
+  changePassword,
 };

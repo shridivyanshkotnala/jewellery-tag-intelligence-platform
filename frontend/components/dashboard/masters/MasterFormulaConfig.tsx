@@ -508,14 +508,14 @@ export function MasterFormulasModule({ contentContainerStyle }: MasterFormulasMo
       showsVerticalScrollIndicator={false}
     >
       <View style={screenStyles.screenSection}>
-        {error ? (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable onPress={() => void loadSettings()} style={styles.retryBtn}>
-              <Text style={styles.retryBtnText}>Retry</Text>
-            </Pressable>
-          </View>
-        ) : null}
+          {error ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{error}</Text>
+              <Pressable onPress={() => void loadSettings()} style={styles.retryBtn}>
+                <Text style={styles.retryBtnText}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : null}
         <MasterFormulaConfig
           activeFormula={activeFormula}
           onActiveFormulaChange={setActiveFormula}
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    marginTop: Spacing.sm,
+    marginTop: 180, // Provides enough scrollable distance so the dropdown doesn't overlap it
   },
   restoreBtn: {
     flex: 1,
